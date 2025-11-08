@@ -1,0 +1,23 @@
+fastchat
++-- src
+|   +-- utils
+|   +-- ui
+|   |   +-- chatmainwindow.ui
+|   |   +-- chatmainwindow.h
+|   |   -- chatmainwindow.cpp
+|   +-- core
+|   -- main.cpp
++-- tests
++-- scripts
+|   +-- README.md
+|   -- genrate-tree.ps1
++-- docs
+|   +-- WEEKLY_LOGS.MD
+|   -- DEVELOPMENT_PLAN.MD
++-- resources
+|   +-- translations
+|   -- icons
++-- genrate-tree.ps1
++-- README.md
++-- .gitignore
+-- CMakeLists.txt
