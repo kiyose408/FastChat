@@ -85,3 +85,4 @@ build/
 CMakeCache.txt
 CMakeFiles/
 Makefile
+.obsidian/
