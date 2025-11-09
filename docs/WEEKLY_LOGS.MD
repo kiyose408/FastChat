@@ -21,8 +21,14 @@
 - 初步测试 `windeployqt` 打包流程
 
 ### ❌ 遇到的问题
+---
+
 - **问题**：目录整理迁移遇到报错
   **解决**：`cmake`源文件目录未更新，main源文件中#include地址未更新
+---
+
+-  **问题**：在ui文件夹的`chatmainwindow.cpp`中包含core中的`configmanager.h`出现报错：无法寻找到地址
+  **解决**：在cmake文件中设置include路径`target_include_directories(fastchat PRIVATE ${CMAKE_SOURCE_DIR}/src)`
 
 ### ➡️ 下周计划（第 2 周）
 
