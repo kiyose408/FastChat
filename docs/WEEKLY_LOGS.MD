@@ -8,16 +8,15 @@
 
 ### ✅ 已完成
 - 创建私有 Git 仓库，初始化 `.gitignore`（Qt + CMake 模板）
-- 设计项目目录结构：`src/`, `resources/`, `docs/`, `scripts/`
+- 设计项目目录结构：`src/`, `resources/`, `docs/`, `scripts/`等
 - 编写根 `CMakeLists.txt`，成功在 Windows (MinGW) 上构建空白 Qt 窗口程序
 - 编写 `DEVELOPMENT_PLAN.md` 和本日志模板
-
+- 编写开发规范和代码风格要求
+- 基础配置和日志能力
 
 
 ### 🚧 进行中
-- 编写开发规范和代码风格要求
-- 实现基础主窗口（`QMainWindow` + `QLabel`）
-- 添加 `LOG_INFO/WARN/ERROR` 日志宏
+
 - 初步测试 `windeployqt` 打包流程
 
 ### ❌ 遇到的问题
