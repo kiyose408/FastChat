@@ -13,5 +13,8 @@
         <file>resources/icons/setting.svg</file>
         <file>resources/icons/video_call.svg</file>
         <file>resources/icons/voice.svg</file>
+        <file>resources/icons/app.svg</file>
+        <file>resources/icons/send.svg</file>
+        <file>resources/icons/user.png</file>
     </qresource>
 </RCC>

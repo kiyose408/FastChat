@@ -63,10 +63,31 @@
        <string notr="true"/>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_4">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
        <item>
-        <widget class="QLabel" name="label">
+        <widget class="QLabel" name="appIcon_label">
          <property name="text">
-          <string>icon</string>
+          <string extracomment="FastChat"/>
+         </property>
+         <property name="pixmap">
+          <pixmap resource="../../resources.qrc">:/resources/icons/app.svg</pixmap>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -133,7 +154,13 @@
              <property name="leftMargin">
               <number>0</number>
              </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
              <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
               <number>0</number>
              </property>
              <item>
@@ -167,7 +194,7 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLineEdit" name="lineEdit">
+                 <widget class="QLineEdit" name="search_line_edit">
                   <property name="minimumSize">
                    <size>
                     <width>145</width>
@@ -199,7 +226,32 @@
               </widget>
              </item>
              <item>
-              <widget class="QWidget" name="widget_26" native="true"/>
+              <widget class="QWidget" name="widget_26" native="true">
+               <layout class="QVBoxLayout" name="verticalLayout_18">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QListView" name="msgList_listview">
+                  <property name="lineWidth">
+                   <number>1</number>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
              </item>
             </layout>
            </widget>
@@ -248,6 +300,21 @@ border-left: none;
              <string notr="true"/>
             </property>
             <layout class="QHBoxLayout" name="horizontalLayout_5">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>6</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>6</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
              <item>
               <widget class="QWidget" name="widget_25" native="true">
                <property name="minimumSize">
@@ -262,11 +329,35 @@ border-left: none;
                  <height>45</height>
                 </size>
                </property>
+               <property name="styleSheet">
+                <string notr="true">border: none;</string>
+               </property>
                <layout class="QHBoxLayout" name="horizontalLayout_6">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
                 <item>
-                 <widget class="QLabel" name="label_2">
+                 <widget class="QLabel" name="sessionUserId_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>40</height>
+                   </size>
+                  </property>
                   <property name="text">
-                   <string>ID</string>
+                   <string>会话对象ID</string>
                   </property>
                  </widget>
                 </item>
@@ -329,9 +420,9 @@ border-left: none;
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_12">
+                 <widget class="QLabel" name="call_label">
                   <property name="text">
-                   <string/>
+                   <string extracomment="语音通话"/>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../resources.qrc">:/resources/icons/call.svg</pixmap>
@@ -384,9 +475,9 @@ border-left: none;
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_13">
+                 <widget class="QLabel" name="videoCall_label">
                   <property name="text">
-                   <string/>
+                   <string extracomment="视频通话"/>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../resources.qrc">:/resources/icons/video_call.svg</pixmap>
@@ -439,9 +530,9 @@ border-left: none;
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_14">
+                 <widget class="QLabel" name="more_label">
                   <property name="text">
-                   <string/>
+                   <string extracomment="更多"/>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../resources.qrc">:/resources/icons/more.svg</pixmap>
@@ -540,9 +631,9 @@ border-left: none;
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_9">
+                 <widget class="QLabel" name="emoji_label">
                   <property name="text">
-                   <string/>
+                   <string extracomment="表情"/>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../resources.qrc">:/resources/icons/emoji.svg</pixmap>
@@ -598,9 +689,9 @@ border-left: none;
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_10">
+                 <widget class="QLabel" name="file_label">
                   <property name="text">
-                   <string/>
+                   <string extracomment="文件"/>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../resources.qrc">:/resources/icons/file.svg</pixmap>
@@ -656,9 +747,9 @@ border-left: none;
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="label_11">
+                 <widget class="QLabel" name="voice_label">
                   <property name="text">
-                   <string/>
+                   <string extracomment="语音消息"/>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../resources.qrc">:/resources/icons/voice.svg</pixmap>
@@ -718,7 +809,31 @@ border-left: none;
               <number>0</number>
              </property>
              <item>
-              <widget class="QWidget" name="widget_23" native="true"/>
+              <widget class="QWidget" name="widget_23" native="true">
+               <property name="styleSheet">
+                <string notr="true">border:none;</string>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_9">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QTextEdit" name="text_textEdit"/>
+                </item>
+               </layout>
+              </widget>
              </item>
              <item>
               <widget class="QWidget" name="widget_24" native="true">
@@ -729,11 +844,17 @@ border-left: none;
                 </size>
                </property>
                <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
                 <property name="topMargin">
                  <number>0</number>
                 </property>
+                <property name="rightMargin">
+                 <number>15</number>
+                </property>
                 <property name="bottomMargin">
-                 <number>0</number>
+                 <number>5</number>
                 </property>
                 <item>
                  <spacer name="horizontalSpacer_2">
@@ -749,9 +870,19 @@ border-left: none;
                  </spacer>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="pushButton_2">
+                 <widget class="QPushButton" name="send_btn">
+                  <property name="minimumSize">
+                   <size>
+                    <width>40</width>
+                    <height>30</height>
+                   </size>
+                  </property>
                   <property name="text">
                    <string>发送</string>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="../../resources.qrc">
+                    <normaloff>:/resources/icons/send.svg</normaloff>:/resources/icons/send.svg</iconset>
                   </property>
                  </widget>
                 </item>
@@ -837,9 +968,9 @@ border-left: none;
            <number>0</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_5">
+           <widget class="QLabel" name="msg_label">
             <property name="text">
-             <string/>
+             <string extracomment="消息"/>
             </property>
             <property name="textFormat">
              <enum>Qt::TextFormat::MarkdownText</enum>
@@ -900,7 +1031,7 @@ border-left: none;
           <item>
            <widget class="QLabel" name="label_6">
             <property name="text">
-             <string/>
+             <string extracomment="好友"/>
             </property>
             <property name="pixmap">
              <pixmap resource="../../resources.qrc">:/resources/icons/friend.svg</pixmap>
@@ -969,9 +1100,9 @@ border-left: none;
            <number>0</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_7">
+           <widget class="QLabel" name="setting_label">
             <property name="text">
-             <string/>
+             <string extracomment="设置"/>
             </property>
             <property name="pixmap">
              <pixmap resource="../../resources.qrc">:/resources/icons/setting.svg</pixmap>
@@ -1027,9 +1158,9 @@ border-left: none;
            <number>0</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_8">
+           <widget class="QLabel" name="quit_label">
             <property name="text">
-             <string/>
+             <string extracomment="退出账号"/>
             </property>
             <property name="pixmap">
              <pixmap resource="../../resources.qrc">:/resources/icons/quit.svg</pixmap>
@@ -1083,33 +1214,54 @@ border-left: none;
         <widget class="QWidget" name="widget_29" native="true">
          <property name="minimumSize">
           <size>
-           <width>40</width>
-           <height>40</height>
+           <width>45</width>
+           <height>45</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>40</width>
-           <height>40</height>
+           <width>45</width>
+           <height>45</height>
           </size>
          </property>
          <property name="sizeIncrement">
           <size>
-           <width>40</width>
-           <height>40</height>
+           <width>45</width>
+           <height>45</height>
           </size>
          </property>
          <property name="baseSize">
           <size>
-           <width>40</width>
-           <height>40</height>
+           <width>45</width>
+           <height>45</height>
           </size>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_17">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="userAvatar_label">
             <property name="text">
-             <string>头像</string>
+             <string extracomment="用户头像"/>
+            </property>
+            <property name="pixmap">
+             <pixmap resource="../../resources.qrc">:/resources/icons/user.png</pixmap>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignmentFlag::AlignCenter</set>
             </property>
            </widget>
           </item>
@@ -1131,10 +1283,25 @@ border-left: none;
           </size>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="userId_label">
             <property name="text">
-             <string>ID</string>
+             <string>用户ID</string>
             </property>
            </widget>
           </item>
