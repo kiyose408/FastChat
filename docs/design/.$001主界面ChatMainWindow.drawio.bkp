@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.8 Chrome/140.0.7339.240 Electron/38.4.0 Safari/537.36" version="28.2.8">
   <diagram name="第 1 页" id="c62p-AAb6xyn7rb2MQTE">
-    <mxGraphModel dx="1773" dy="2329" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1858" dy="1193" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -162,6 +162,15 @@
         <mxCell id="maRZP-ntU4mqxS1trm7h-61" value="200px" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="170" y="140" width="60" height="30" as="geometry" />
         </mxCell>
+        <mxCell id="maRZP-ntU4mqxS1trm7h-63" value="退出" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="760" y="200" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="maRZP-ntU4mqxS1trm7h-64" value="全屏" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="720" y="200" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="maRZP-ntU4mqxS1trm7h-65" value="最小化" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="680" y="200" width="40" height="40" as="geometry" />
+        </mxCell>
         <mxCell id="maRZP-ntU4mqxS1trm7h-66" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="-100" y="240" as="sourcePoint" />
@@ -180,7 +189,7 @@
         <mxCell id="maRZP-ntU4mqxS1trm7h-69" value="设置" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="5" y="680" width="40" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="DINWkfj-gwPLxgwmUyPg-1" value="发送" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+        <mxCell id="DINWkfj-gwPLxgwmUyPg-1" value="发送" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="732.5" y="740" width="57.5" height="30" as="geometry" />
         </mxCell>
       </root>
