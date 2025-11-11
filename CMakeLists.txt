@@ -34,6 +34,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         src/core/configmanager.h src/core/configmanager.cpp
         src/utils/logger.h src/utils/logger.cpp
+        resources/icons/call.svg resources/icons/emoji.svg resources/icons/file.svg resources/icons/friend.svg resources/icons/friend_select.svg resources/icons/more.svg resources/icons/msg.svg resources/icons/msg_select.svg resources/icons/quit.svg resources/icons/setting.svg resources/icons/video_call.svg resources/icons/voice.svg
+        resources.qrc
+        src/ui/logindialog.h src/ui/logindialog.cpp src/ui/logindialog.ui
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET fastchat APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

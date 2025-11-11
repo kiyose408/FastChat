@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/icons/call.svg</file>
+        <file>resources/icons/emoji.svg</file>
+        <file>resources/icons/emoji_select.svg</file>
+        <file>resources/icons/file.svg</file>
+        <file>resources/icons/friend.svg</file>
+        <file>resources/icons/friend_select.svg</file>
+        <file>resources/icons/more.svg</file>
+        <file>resources/icons/msg.svg</file>
+        <file>resources/icons/msg_select.svg</file>
+        <file>resources/icons/quit.svg</file>
+        <file>resources/icons/setting.svg</file>
+        <file>resources/icons/video_call.svg</file>
+        <file>resources/icons/voice.svg</file>
+        <file>resources/icons/app.svg</file>
+        <file>resources/icons/send.svg</file>
+        <file>resources/icons/user.png</file>
+    </qresource>
+</RCC>
