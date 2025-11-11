@@ -19,6 +19,10 @@
   <property name="windowTitle">
    <string>FastChat v0.11</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../../resources.qrc">
+    <normaloff>:/resources/icons/app.svg</normaloff>:/resources/icons/app.svg</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <property name="styleSheet">
     <string notr="true">background-color: rgb(255, 255, 255);</string>
