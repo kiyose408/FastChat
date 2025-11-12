@@ -1,6 +1,6 @@
 #ifndef LOGINDIALOG_H
 #define LOGINDIALOG_H
-
+#include "core/IAuthService.h"
 #include <QDialog>
 
 namespace Ui {
@@ -20,6 +20,7 @@ private slots:
 
 private:
     Ui::LoginDialog *ui;
+    IAuthService *m_authService = nullptr;
 };
 
 #endif // LOGINDIALOG_H
