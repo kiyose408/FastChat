@@ -26,10 +26,4 @@ int main(int argc, char *argv[])
         // 用户点击了“取消”或关闭窗口
         return 0; // 正常退出
     }
-/*    ChatMainWindow w;
-    w.show();
-    int result = app.exec();
-    Logger::info("Application exited");
-    return result;
-*/
 }
