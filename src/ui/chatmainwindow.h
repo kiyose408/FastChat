@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 class FriendModel;
+class MessageModel;
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class ChatMainWindow;
@@ -21,5 +22,6 @@ private slots:
 private:
     Ui::ChatMainWindow *ui;
     FriendModel *m_friendModel;
+    MessageModel *m_messageModel;
 };
 #endif // CHATMAINWINDOW_H

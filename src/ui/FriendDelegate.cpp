@@ -59,5 +59,5 @@ void FriendDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option
 }
 
 QSize FriendDelegate::sizeHint(const QStyleOptionViewItem &, const QModelIndex &) const {
-    return QSize(250, 60);
+    return QSize(200, 60);
 }

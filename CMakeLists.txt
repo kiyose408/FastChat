@@ -41,6 +41,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         src/core/MockAuthService.h src/core/MockAuthService.cpp
         src/core/FriendModel.h src/core/FriendModel.cpp
         src/ui/FriendDelegate.h src/ui/FriendDelegate.cpp
+        src/core/MessageModel.h src/core/MessageModel.cpp
+        src/ui/MessageDelegate.h src/ui/MessageDelegate.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET fastchat APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
