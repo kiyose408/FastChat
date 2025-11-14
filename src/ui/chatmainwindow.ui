@@ -248,7 +248,7 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QListView" name="msgList_listview">
+                 <widget class="QListView" name="friend_List_listview">
                   <property name="lineWidth">
                    <number>1</number>
                   </property>
@@ -557,6 +557,11 @@ border-left: none;
             <property name="styleSheet">
              <string notr="true"/>
             </property>
+            <layout class="QVBoxLayout" name="verticalLayout_19">
+             <item>
+              <widget class="QListWidget" name="listWidget"/>
+             </item>
+            </layout>
            </widget>
           </item>
           <item>
