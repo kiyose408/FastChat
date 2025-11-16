@@ -17,6 +17,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 #find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network)
 # 或者如果您使用的是 Qt6:
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network WebSockets)
 
 # 源文件
 set(PROJECT_SOURCES
@@ -48,6 +49,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         src/ui/MessageDelegate.h src/ui/MessageDelegate.cpp
         src/core/SessionManager.h src/core/SessionManager.cpp
         src/core/ApiService.h src/core/ApiService.cpp
+        src/core/WebSocketClient.h src/core/WebSocketClient.cpp
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET fastchat APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -70,7 +73,12 @@ endif()
 #设置include路径        set the way of include
 target_include_directories(fastchat PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(fastchat PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-target_link_libraries(fastchat PRIVATE Qt6::Core Qt6::Widgets Qt6::Network)
+target_link_libraries(fastchat PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Network
+    Qt6::WebSockets
+)
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
