@@ -98,6 +98,7 @@ private:
      * @return 返回后端服务的基础地址（例如 http://localhost:3000）
      */
     QString baseUrl() const { return "http://localhost:3000"; }
+    //QString baseUrl() const { return "http://47.121.131.251:3000"; }
 };
 
 #endif // APISERVICE_H

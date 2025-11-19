@@ -56,7 +56,7 @@
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap>:/resources/icons/app.svg</pixmap>
+       <pixmap resource="../../resources.qrc">:/resources/icons/app.svg</pixmap>
       </property>
       <property name="alignment">
        <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -253,7 +253,7 @@
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap>:/resources/icons/user.png</pixmap>
+       <pixmap resource="../../resources.qrc">:/resources/icons/Logindialog.svg</pixmap>
       </property>
       <property name="alignment">
        <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -263,6 +263,8 @@
    </layout>
   </widget>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

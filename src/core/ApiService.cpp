@@ -45,6 +45,7 @@ void ApiService::login(const QString &username, const QString &password)
     QJsonDocument doc(json);
     QByteArray data = doc.toJson(); // 这个 data 就是即将发送的请求体
 
+    qDebug() << "Sending POST request to" << url.toString() << "with data:" << data; // 调试
     // 使用网络管理器发起 POST 请求，将 data 作为请求体发送
     m_netManager.post(request, data);
 }

@@ -16,5 +16,6 @@
         <file>resources/icons/app.svg</file>
         <file>resources/icons/send.svg</file>
         <file>resources/icons/user.png</file>
+        <file>resources/icons/Logindialog.svg</file>
     </qresource>
 </RCC>
