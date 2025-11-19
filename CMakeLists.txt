@@ -51,6 +51,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         src/core/ApiService.h src/core/ApiService.cpp
         src/core/WebSocketClient.h src/core/WebSocketClient.cpp
         resources/icons/app.svg resources/icons/call.svg resources/icons/emoji.svg resources/icons/emoji_select.svg resources/icons/file.svg resources/icons/friend.svg resources/icons/friend_select.svg resources/icons/Logindialog.svg resources/icons/more.svg resources/icons/msg.svg resources/icons/msg_select.svg resources/icons/quit.svg resources/icons/send.svg resources/icons/setting.svg resources/icons/user.png resources/icons/video_call.svg resources/icons/voice.svg
+        src/ui/RegisterDialog.h src/ui/RegisterDialog.cpp src/ui/RegisterDialog.ui
 
     )
 # Define target properties for Android with Qt 6 as:

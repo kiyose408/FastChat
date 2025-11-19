@@ -21,6 +21,7 @@ private slots:
     // ✅ 新增的私有槽函数
     void onLoginSuccess(const QJsonObject&, const QString&);
     void onLoginFailed(const QString&);
+    void on_New_btn_clicked();
 
 private:
     Ui::LoginDialog *ui;
