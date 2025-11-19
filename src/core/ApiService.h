@@ -31,6 +31,7 @@ public:
      */
     explicit ApiService(QObject *parent = nullptr);
 
+    void registerUser(const QString &username, const QString &email, const QString &password);
     /**
      * @brief 发起用户登录请求
      * 将用户名和密码以 JSON 格式 POST 到 /api/auth/login 接口
@@ -52,6 +53,9 @@ public:
     void fetchFriends();
 
 signals:
+    // 新增的注册相关信号
+    void registerSuccess(const QJsonObject &user, const QString &token);
+    void registerFailed(const QString &error);
     /**
      * @brief 登录成功信号
      * 当服务器返回有效 token 和用户数据时触发

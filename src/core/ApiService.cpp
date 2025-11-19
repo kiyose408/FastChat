@@ -24,6 +24,33 @@ ApiService::ApiService(QObject *parent)
             this, &ApiService::onReplyFinished);
 }
 
+// 发起注册请求
+// 构建注册 API 的 HTTP POST 请求，发送用户名、邮箱和密码给服务器
+// 请求成功后，服务器会返回包含 token 和用户信息的 JSON 响应
+void ApiService::registerUser(const QString &username, const QString &email, const QString &password)
+{
+    // 构建注册 API 的完整 URL
+    QUrl url(baseUrl() + "/api/auth/register");
+    // 创建网络请求对象
+    QNetworkRequest request(url);
+    // 设置请求头，指定发送的数据格式为 JSON
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    // 构建要发送的 JSON 数据体
+    QJsonObject json;
+    json["username"] = username; // 添加用户名字段
+    json["email"] = email;       // 添加邮箱字段
+    json["password"] = password; // 添加密码字段
+
+    // 将 JSON 对象转换为 JSON 文档，再转换为字节数组
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson(); // 这个 data 就是即将发送的请求体
+
+    qDebug() << "Sending POST request to" << url.toString() << "with data:" << data; // 调试
+    // 使用网络管理器发起 POST 请求，将 data 作为请求体发送
+    m_netManager.post(request, data);
+}
+
 // 发起登录请求
 // 构建登录 API 的 HTTP POST 请求，发送用户名和密码给服务器
 // 请求成功后，服务器会返回包含 token 和用户信息的 JSON 响应
@@ -150,7 +177,33 @@ void ApiService::onReplyFinished(QNetworkReply *reply)
             // 尝试提取服务器返回的错误消息，如果不存在则使用默认消息
             emit loginFailed(json["message"].toString("Login failed"));
         }
-    } else if (path == "/api/users/me") {
+    }
+    else if (path == "/api/auth/register") {
+        // 处理注册 API 的响应
+        if (json.contains("token")) {
+            // 注册成功，响应中包含 token 和 user
+            QString token = json["token"].toString(); // 提取 token
+            QJsonObject user = json["user"].toObject(); // 提取用户信息对象
+            // 注意：user 对象中通常包含 id, username, email 等字段
+            // 可以根据需要提取特定字段
+            // int userId = user["id"].toInt(); // 如果需要用户 ID
+            // QString username = user["username"].toString(); // 如果需要用户名
+
+            // --- 可选：保存会话信息 ---
+            // 如果注册后立即需要登录（比如前端自动登录），可以保存 token 和用户信息
+            // SessionManager::instance().setToken(token);
+            // SessionManager::instance().setUserInfo(userId, username); // 需要从 user 中提取
+            // SessionManager::instance().save();
+
+            // 发出注册成功的信号
+            emit registerSuccess(user, token); // 传递 user 和 token
+        } else {
+            // 注册失败，尝试提取服务器返回的错误消息
+            QString errorMessage = json["message"].toString("Registration failed"); // 提供默认消息
+            emit registerFailed(errorMessage);
+        }
+    }
+    else if (path == "/api/users/me") {
         // 处理获取用户信息 API 的响应
         // 直接发出用户信息获取成功的信号，将完整的 JSON 对象传递出去
         emit userInfoFetched(json);
