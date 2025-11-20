@@ -12,9 +12,7 @@
 #include <QUrlQuery>       // 用于处理 URL 查询参数（虽然此文件未使用，但包含在内）
 #include <QDebug>          // 用于调试输出
 
-// 构造函数
-// 初始化 ApiService 对象，并连接网络管理器的 finished 信号到 onReplyFinished 槽函数
-// 这样当网络请求完成时，会自动调用 onReplyFinished 处理响应
+
 ApiService::ApiService(QObject *parent)
     : QObject(parent) // 调用父类 QObject 的构造函数
 {
@@ -56,25 +54,188 @@ void ApiService::registerUser(const QString &username, const QString &email, con
 // 请求成功后，服务器会返回包含 token 和用户信息的 JSON 响应
 void ApiService::login(const QString &username, const QString &password)
 {
-    // 构建登录 API 的完整 URL，假设 baseUrl() 返回基础 API 地址
+
     QUrl url(baseUrl() + "/api/auth/login");
-    // 创建网络请求对象
     QNetworkRequest request(url);
-    // 设置请求头，指定发送的数据格式为 JSON
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     // 构建要发送的 JSON 数据体
     QJsonObject json;
-    json["username"] = username; // 添加用户名字段
-    json["password"] = password; // 添加密码字段
+    json["username"] = username;
+    json["password"] = password;
 
     // 将 JSON 对象转换为 JSON 文档，再转换为字节数组
     QJsonDocument doc(json);
     QByteArray data = doc.toJson(); // 这个 data 就是即将发送的请求体
 
     qDebug() << "Sending POST request to" << url.toString() << "with data:" << data; // 调试
-    // 使用网络管理器发起 POST 请求，将 data 作为请求体发送
     m_netManager.post(request, data);
+}
+
+//搜索用户
+void ApiService::searchUsers(const QString &query)
+{
+    if (query.trimmed().length() < 2) {
+        emit searchUsersFailed("Query too short.");
+        return;
+    }
+
+    QUrl url(baseUrl() + "/api/friends/search");
+    QUrlQuery queryItems;
+    queryItems.addQueryItem("q", query);
+    url.setQuery(queryItems);
+
+    QNetworkRequest request(url);
+    QNetworkReply* reply = m_netManager.get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isArray()) {
+                emit searchUsersSuccess(doc.array());
+            } else {
+                emit searchUsersFailed("Invalid response format.");
+            }
+        } else {
+            emit searchUsersFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
+// 新增：发送好友请求
+void ApiService::sendFriendRequest(int friendId) {
+    QUrl url(baseUrl() + "/api/friends/request");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QJsonObject json;
+    json["friendId"] = friendId;
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+
+    QNetworkReply* reply = m_netManager.post(request, data);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit sendFriendRequestSuccess(doc.object());
+            } else {
+                emit sendFriendRequestFailed("Invalid response format.");
+            }
+        } else {
+            emit sendFriendRequestFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+// 新增：获取好友列表
+void ApiService::getFriends() {
+    QUrl url(baseUrl() + "/api/friends");
+    QNetworkRequest request(url);
+    SessionManager& session = SessionManager::instance();
+    request.setRawHeader("Authorization", ("Bearer " + session.token()).toUtf8());
+
+    QNetworkReply* reply = m_netManager.get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isArray()) {
+                emit getFriendsSuccess(doc.array());
+            } else {
+                emit getFriendsFailed("Invalid response format.");
+            }
+        } else {
+            emit getFriendsFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
+// 新增：获取好友请求
+void ApiService::getFriendRequests() {
+    QUrl url(baseUrl() + "/api/friends/requests");
+    QNetworkRequest request(url);
+    SessionManager& session = SessionManager::instance();
+    request.setRawHeader("Authorization", ("Bearer " + session.token()).toUtf8());
+
+    QNetworkReply* reply = m_netManager.get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isArray()) {
+                emit getFriendRequestsSuccess(doc.array());
+            } else {
+                emit getFriendRequestsFailed("Invalid response format.");
+            }
+        } else {
+            emit getFriendRequestsFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
+// 新增：接受好友请求
+void ApiService::acceptFriendRequest(int requesterId) {
+    QUrl url(baseUrl() + "/api/friends/accept");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    SessionManager& session = SessionManager::instance();
+    request.setRawHeader("Authorization", ("Bearer " + session.token()).toUtf8());
+
+    QJsonObject json;
+    json["requesterId"] = requesterId;
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+
+    QNetworkReply* reply = m_netManager.post(request, data);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit acceptFriendRequestSuccess(doc.object());
+            } else {
+                emit acceptFriendRequestFailed("Invalid response format.");
+            }
+        } else {
+            emit acceptFriendRequestFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
+// 新增：拒绝好友请求
+void ApiService::rejectFriendRequest(int requesterId) {
+    QUrl url(baseUrl() + "/api/friends/reject");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    SessionManager& session = SessionManager::instance();
+    request.setRawHeader("Authorization", ("Bearer " + session.token()).toUtf8());
+
+    QJsonObject json;
+    json["requesterId"] = requesterId;
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+
+    QNetworkReply* reply = m_netManager.post(request, data);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            emit rejectFriendRequestSuccess();
+        } else {
+            emit rejectFriendRequestFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
 }
 
 // 获取当前用户的详细信息

@@ -24,65 +24,48 @@ class ApiService : public QObject
     Q_OBJECT  // 启用 Qt 的元对象系统（用于信号/槽机制）
 
 public:
-    /**
-     * @brief 构造函数
-     * 初始化网络管理器并连接其 finished 信号到 onReplyFinished 槽函数。
-     * @param parent 可选的父 QObject，用于自动内存管理
-     */
+
     explicit ApiService(QObject *parent = nullptr);
 
+    //注册和登录
     void registerUser(const QString &username, const QString &email, const QString &password);
-    /**
-     * @brief 发起用户登录请求
-     * 将用户名和密码以 JSON 格式 POST 到 /api/auth/login 接口
-     * @param username 用户名
-     * @param password 密码
-     */
     void login(const QString& username, const QString& password);
 
-    /**
-     * @brief 获取当前用户的个人信息
-     * 需要已登录并持有有效 token 才能发起请求
-     */
-    void fetchUserInfo();
+    //新增：好友相关API
+    void searchUsers(const QString& query);
+    void sendFriendRequest(int friendId);
+    void getFriends();
+    void getFriendRequests();
+    void acceptFriendRequest(int requesterId);
+    void rejectFriendRequest(int requesterId);
 
-    /**
-     * @brief 获取当前用户的好友列表
-     * 需要已登录并持有有效 token 才能发起请求
-     */
+    void fetchUserInfo();
     void fetchFriends();
 
 signals:
-    // 新增的注册相关信号
+
     void registerSuccess(const QJsonObject &user, const QString &token);
     void registerFailed(const QString &error);
-    /**
-     * @brief 登录成功信号
-     * 当服务器返回有效 token 和用户数据时触发
-     * @param user 包含用户信息的 JSON 对象（如 id, username）
-     * @param token JWT 认证令牌
-     */
-    void loginSuccess(const QJsonObject& user, const QString& token);
 
-    /**
-     * @brief 登录失败信号
-     * 当网络错误或认证失败时触发
-     * @param error 错误描述字符串
-     */
+    void loginSuccess(const QJsonObject& user, const QString& token);
     void loginFailed(const QString& error);
 
-    /**
-     * @brief 用户信息获取成功信号
-     * 当成功从服务器获取用户资料时触发
-     * @param user 用户信息 JSON 对象
-     */
-    void userInfoFetched(const QJsonObject& user);
 
-    /**
-     * @brief 好友列表获取成功信号
-     * 当成功获取好友列表时触发
-     * @param friends 好友数组（每个元素为一个用户对象）
-     */
+    // 新增：好友相关信号
+    void searchUsersSuccess(const QJsonArray& users);
+    void searchUsersFailed(const QString& error);
+    void sendFriendRequestSuccess(const QJsonObject& request);
+    void sendFriendRequestFailed(const QString& error);
+    void getFriendsSuccess(const QJsonArray& friends);
+    void getFriendsFailed(const QString& error);
+    void getFriendRequestsSuccess(const QJsonArray& requests);
+    void getFriendRequestsFailed(const QString& error);
+    void acceptFriendRequestSuccess(const QJsonObject& request);
+    void acceptFriendRequestFailed(const QString& error);
+    void rejectFriendRequestSuccess();
+    void rejectFriendRequestFailed(const QString& error);
+
+    void userInfoFetched(const QJsonObject& user);
     void friendsFetched(const QJsonArray& friends);
 
 private slots:

@@ -19,7 +19,7 @@ void ConfigManager::setServerAddress(const QSize &addr)
 
 QSize ConfigManager::windowSize() const
 {
-    return m_settings.value("UI/WindowSize",QSize(800,600)).toSize();
+    return m_settings.value("UI/WindowSize",QSize(580,800)).toSize();
 }
 
 void ConfigManager::setWindowSize(const QSize &size)

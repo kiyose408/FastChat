@@ -17,5 +17,10 @@
         <file>resources/icons/send.svg</file>
         <file>resources/icons/user.png</file>
         <file>resources/icons/Logindialog.svg</file>
+        <file>resources/icons/search_32.svg</file>
+        <file>resources/icons/search_20.svg</file>
+        <file>resources/icons/esc.svg</file>
+        <file>resources/icons/max.svg</file>
+        <file>resources/icons/minus.svg</file>
     </qresource>
 </RCC>

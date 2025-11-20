@@ -18,6 +18,8 @@ RegisterDialog::RegisterDialog(ApiService* apiService,QWidget *parent)
     }
 
     ui->setupUi(this);
+    setWindowFlags(Qt::FramelessWindowHint); // 取消注释这行来完全移除标题栏和边框
+    setWindowTitle("FastChat-注册"); // 或者留空 setWindowTitle("");
 }
 
 RegisterDialog::~RegisterDialog()
@@ -43,7 +45,7 @@ void RegisterDialog::on_Register_btn_clicked()
         return;
     }
 
-    // TODO: 调用你的注册逻辑 API
+    //  调用注册逻辑 API
     m_apiService->registerUser(newUsername,newEmail,newPassword);
 
 // 连接注册信号

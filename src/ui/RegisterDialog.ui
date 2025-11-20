@@ -416,6 +416,13 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>userId_lineEdit</tabstop>
+  <tabstop>email_lineEdit</tabstop>
+  <tabstop>userPassword_lineEdit</tabstop>
+  <tabstop>confirmUserPassword_lineEdit</tabstop>
+  <tabstop>Register_btn</tabstop>
+ </tabstops>
  <resources>
   <include location="../../resources.qrc"/>
  </resources>

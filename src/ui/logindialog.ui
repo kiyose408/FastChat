@@ -22,6 +22,9 @@
     <height>380</height>
    </size>
   </property>
+  <property name="focusPolicy">
+   <enum>Qt::FocusPolicy::NoFocus</enum>
+  </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
@@ -68,7 +71,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="widget_3" native="true">
+  <widget class="QWidget" name="widget_4" native="true">
    <property name="geometry">
     <rect>
      <x>0</x>
@@ -113,6 +116,9 @@
         <width>160</width>
         <height>16777215</height>
        </size>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::FocusPolicy::TabFocus</enum>
       </property>
      </widget>
     </item>
@@ -163,6 +169,9 @@
         <bold>true</bold>
        </font>
       </property>
+      <property name="focusPolicy">
+       <enum>Qt::FocusPolicy::TabFocus</enum>
+      </property>
       <property name="text">
        <string>Login</string>
       </property>
@@ -202,7 +211,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="widget_4" native="true">
+  <widget class="QWidget" name="widget_43" native="true">
    <property name="geometry">
     <rect>
      <x>0</x>
@@ -247,6 +256,9 @@
         <width>160</width>
         <height>16777215</height>
        </size>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::FocusPolicy::StrongFocus</enum>
       </property>
      </widget>
     </item>
@@ -293,6 +305,12 @@
    </layout>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>userId_lineEdit</tabstop>
+  <tabstop>userPassword_lineEdit</tabstop>
+  <tabstop>Login_btn</tabstop>
+  <tabstop>New_btn</tabstop>
+ </tabstops>
  <resources>
   <include location="../../resources.qrc"/>
  </resources>
