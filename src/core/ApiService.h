@@ -6,6 +6,7 @@
 #include <QNetworkReply>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QHttpMultiPart>
 
 class ApiService : public QObject
 {
@@ -32,6 +33,9 @@ public:
     
     void sendMessage(int recipientId, const QString& content);
     void getConversation(int recipientId);
+    
+    void uploadImage(const QString& filePath);
+    void uploadFile(const QString& filePath);
 
 signals:
 
@@ -65,6 +69,11 @@ signals:
     void sendMessageFailed(const QString& error);
     void getConversationSuccess(const QJsonArray& messages);
     void getConversationFailed(const QString& error);
+    
+    void uploadImageSuccess(const QJsonObject& result);
+    void uploadImageFailed(const QString& error);
+    void uploadFileSuccess(const QJsonObject& result);
+    void uploadFileFailed(const QString& error);
 
 
 

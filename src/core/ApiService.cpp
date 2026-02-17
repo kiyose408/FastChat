@@ -11,6 +11,9 @@
 #include <QJsonObject>     // 用于处理 JSON 对象
 #include <QUrlQuery>       // 用于处理 URL 查询参数（虽然此文件未使用，但包含在内）
 #include <QDebug>          // 用于调试输出
+#include <QFile>
+#include <QFileInfo>
+#include <QHttpMultiPart>
 
 
 ApiService::ApiService(QObject *parent)
@@ -505,6 +508,107 @@ void ApiService::getConversation(int recipientId) {
             }
         } else {
             emit getConversationFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
+void ApiService::uploadImage(const QString& filePath) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit uploadImageFailed("Not authenticated.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/upload/image");
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    
+    QHttpPart imagePart;
+    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, "image/jpeg");
+    imagePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"image\"; filename=\"image.jpg\""));
+    
+    QFile* file = new QFile(filePath);
+    if (!file->open(QIODevice::ReadOnly)) {
+        emit uploadImageFailed("Cannot open file.");
+        delete multiPart;
+        delete file;
+        return;
+    }
+    
+    imagePart.setBodyDevice(file);
+    file->setParent(multiPart);
+    multiPart->append(imagePart);
+    
+    QNetworkReply* reply = m_netManager.post(request, multiPart);
+    multiPart->setParent(reply);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            qDebug() << "Upload image response:" << data;
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit uploadImageSuccess(doc.object());
+            } else {
+                emit uploadImageFailed("Invalid response format.");
+            }
+        } else {
+            emit uploadImageFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
+void ApiService::uploadFile(const QString& filePath) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit uploadFileFailed("Not authenticated.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/upload/file");
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    
+    QFileInfo fileInfo(filePath);
+    QString fileName = fileInfo.fileName();
+    
+    QHttpPart filePart;
+    filePart.setHeader(QNetworkRequest::ContentTypeHeader, "application/octet-stream");
+    filePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant(QString("form-data; name=\"file\"; filename=\"%1\"").arg(fileName)));
+    
+    QFile* file = new QFile(filePath);
+    if (!file->open(QIODevice::ReadOnly)) {
+        emit uploadFileFailed("Cannot open file.");
+        delete multiPart;
+        delete file;
+        return;
+    }
+    
+    filePart.setBodyDevice(file);
+    file->setParent(multiPart);
+    multiPart->append(filePart);
+    
+    QNetworkReply* reply = m_netManager.post(request, multiPart);
+    multiPart->setParent(reply);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            qDebug() << "Upload file response:" << data;
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit uploadFileSuccess(doc.object());
+            } else {
+                emit uploadFileFailed("Invalid response format.");
+            }
+        } else {
+            emit uploadFileFailed(reply->errorString());
         }
         reply->deleteLater();
     });

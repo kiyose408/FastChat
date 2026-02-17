@@ -656,6 +656,40 @@ border-left: none;
               </widget>
              </item>
              <item>
+              <widget class="QWidget" name="widget_28" native="true">
+               <property name="minimumSize">
+                <size>
+                 <width>40</width>
+                 <height>40</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>40</height>
+                </size>
+               </property>
+               <property name="layoutDirection">
+                <enum>Qt::LayoutDirection::LeftToRight</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_20">
+                <item>
+                 <widget class="ClickableLabel" name="pic_label">
+                  <property name="text">
+                   <string extracomment="语音消息"/>
+                  </property>
+                  <property name="pixmap">
+                   <pixmap resource="../../resources.qrc">:/resources/icons/voice.svg</pixmap>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
               <widget class="QWidget" name="widget_18" native="true">
                <property name="minimumSize">
                 <size>
@@ -698,7 +732,7 @@ border-left: none;
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="file_label">
+                 <widget class="ClickableLabel" name="file_label">
                   <property name="text">
                    <string extracomment="文件"/>
                   </property>

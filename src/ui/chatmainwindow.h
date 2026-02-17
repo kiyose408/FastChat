@@ -38,6 +38,8 @@ private slots:
     void onFriendClicked(const QModelIndex &index);
     void on_addFriend_label_clicked();
     void on_more_label_clicked();
+    void on_pic_label_clicked();
+    void on_file_label_clicked();
 
     void on_esc_label_clicked();
     void on_max_label_clicked();
@@ -56,6 +58,20 @@ private slots:
     void onGetConversationFailed(const QString& error);
     
     void onDeleteFriendSuccess();
+    
+    void onWebSocketConnected();
+    void onWebSocketDisconnected();
+    void onWebSocketError(const QString& error);
+    void onWebSocketMessageReceived(const QJsonObject& message);
+    void onWebSocketMessageSent(const QJsonObject& message);
+    void onWebSocketFriendRequestReceived(int userId, const QString& username, const QString& note);
+    void onWebSocketFriendRequestAccepted(int friendId, const QString& username);
+    void onWebSocketFriendDeleted(int friendId);
+    
+    void onUploadImageSuccess(const QJsonObject& result);
+    void onUploadImageFailed(const QString& error);
+    void onUploadFileSuccess(const QJsonObject& result);
+    void onUploadFileFailed(const QString& error);
 
 private:
     Ui::ChatMainWindow *ui;
