@@ -11,6 +11,8 @@
 #include <QMouseEvent>
 #include <QNetworkReply>
 #include <QDebug>
+#include <QTextLayout>
+#include <QTextOption>
 
 static const QColor SELF_BUBBLE_COLOR(220, 248, 198);
 static const QColor OTHER_BUBBLE_COLOR(241, 240, 240);
@@ -22,10 +24,47 @@ static const QColor FILE_ICON_COLOR(100, 100, 100);
 static const QColor LOADING_COLOR(200, 200, 200);
 
 QSize MessageDelegate::calculateTextSize(const QString &text) const {
-    QTextDocument doc;
-    doc.setHtml(text.toHtmlEscaped().replace("\n", "<br>"));
-    doc.setTextWidth(280);
-    return QSize(doc.idealWidth(), static_cast<int>(doc.size().height()));
+    QFont font("Microsoft YaHei", 10);
+    QFontMetrics fm(font);
+    
+    int maxWidth = 280;
+    
+    QStringList lines;
+    QString currentLine;
+    int currentLineWidth = 0;
+    
+    for (int i = 0; i < text.length(); ++i) {
+        QChar c = text[i];
+        int charWidth = fm.horizontalAdvance(c);
+        
+        if (c == '\n') {
+            lines.append(currentLine);
+            currentLine.clear();
+            currentLineWidth = 0;
+        } else if (currentLineWidth + charWidth > maxWidth) {
+            lines.append(currentLine);
+            currentLine = c;
+            currentLineWidth = charWidth;
+        } else {
+            currentLine += c;
+            currentLineWidth += charWidth;
+        }
+    }
+    if (!currentLine.isEmpty()) {
+        lines.append(currentLine);
+    }
+    
+    int totalHeight = lines.count() * fm.height();
+    
+    int maxLineWidth = 0;
+    for (const QString& line : lines) {
+        int lineWidth = fm.horizontalAdvance(line);
+        if (lineWidth > maxLineWidth) {
+            maxLineWidth = lineWidth;
+        }
+    }
+    
+    return QSize(maxLineWidth, totalHeight);
 }
 
 void MessageDelegate::loadImage(const QString& url) const {
@@ -78,9 +117,49 @@ void MessageDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
 }
 
 void MessageDelegate::paintTextMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &text, const QString &time) const {
-    QSize textSize = calculateTextSize(text);
-    int bubbleWidth = qMin(textSize.width() + 20, 300);
-    int bubbleHeight = textSize.height() + 20;
+    QFont font("Microsoft YaHei", 10);
+    QFontMetrics fm(font);
+    
+    int maxWidth = 280;
+    int padding = 10;
+    
+    QStringList lines;
+    QString currentLine;
+    int currentLineWidth = 0;
+    
+    for (int i = 0; i < text.length(); ++i) {
+        QChar c = text[i];
+        int charWidth = fm.horizontalAdvance(c);
+        
+        if (c == '\n') {
+            lines.append(currentLine);
+            currentLine.clear();
+            currentLineWidth = 0;
+        } else if (currentLineWidth + charWidth > maxWidth) {
+            lines.append(currentLine);
+            currentLine = c;
+            currentLineWidth = charWidth;
+        } else {
+            currentLine += c;
+            currentLineWidth += charWidth;
+        }
+    }
+    if (!currentLine.isEmpty()) {
+        lines.append(currentLine);
+    }
+    
+    int totalHeight = lines.count() * fm.height();
+    
+    int maxLineWidth = 0;
+    for (const QString& line : lines) {
+        int lineWidth = fm.horizontalAdvance(line);
+        if (lineWidth > maxLineWidth) {
+            maxLineWidth = lineWidth;
+        }
+    }
+    
+    int bubbleWidth = qMin(maxLineWidth + padding * 2, maxWidth + padding * 2);
+    int bubbleHeight = totalHeight + padding * 2;
 
     int x = isSelf ? (option.rect.right() - bubbleWidth - 10) : 10;
     QRect bubbleRect(x, option.rect.top() + 5, bubbleWidth, bubbleHeight);
@@ -91,18 +170,16 @@ void MessageDelegate::paintTextMessage(QPainter *painter, const QStyleOptionView
     painter->setPen(isSelf ? Qt::NoPen : QPen(BUBBLE_BORDER_COLOR, 1));
     painter->drawPath(path);
 
-    QRect textRect = bubbleRect.adjusted(10, 10, -10, -10);
+    painter->setFont(font);
     painter->setPen(TEXT_COLOR);
-    painter->setFont(QFont("Arial", 10));
+    
+    int textY = bubbleRect.top() + padding + fm.ascent();
+    for (const QString& line : lines) {
+        painter->drawText(bubbleRect.left() + padding, textY, line);
+        textY += fm.height();
+    }
 
-    QTextDocument doc;
-    doc.setHtml(text.toHtmlEscaped().replace("\n", "<br>"));
-    doc.setTextWidth(textRect.width());
-    painter->translate(textRect.topLeft());
-    doc.drawContents(painter);
-    painter->translate(-textRect.topLeft());
-
-    painter->setFont(QFont("Arial", 8));
+    painter->setFont(QFont("Microsoft YaHei", 8));
     painter->setPen(TIME_COLOR);
     int timeX = isSelf ? (bubbleRect.left()) : (bubbleRect.right() - 40);
     painter->drawText(QRect(timeX, bubbleRect.bottom() + 2, 40, 14), Qt::AlignHCenter, time);
@@ -143,13 +220,13 @@ void MessageDelegate::paintImageMessage(QPainter *painter, const QStyleOptionVie
         painter->drawRoundedRect(imageRect, 8, 8);
         
         painter->setPen(Qt::white);
-        painter->setFont(QFont("Arial", 10));
+        painter->setFont(QFont("Microsoft YaHei", 10));
         painter->drawText(imageRect, Qt::AlignCenter, "加载中...");
         
         loadImage(fileUrl);
     }
 
-    painter->setFont(QFont("Arial", 8));
+    painter->setFont(QFont("Microsoft YaHei", 8));
     painter->setPen(TIME_COLOR);
     int timeX = isSelf ? (bubbleRect.left()) : (bubbleRect.right() - 40);
     painter->drawText(QRect(timeX, bubbleRect.bottom() + 2, 40, 14), Qt::AlignHCenter, time);
@@ -174,12 +251,12 @@ void MessageDelegate::paintFileMessage(QPainter *painter, const QStyleOptionView
     painter->drawRoundedRect(iconRect, 8, 8);
     
     painter->setPen(FILE_ICON_COLOR);
-    painter->setFont(QFont("Arial", 10, QFont::Bold));
+    painter->setFont(QFont("Microsoft YaHei", 10, QFont::Bold));
     painter->drawText(iconRect, Qt::AlignCenter, "FILE");
 
     QRect nameRect(x + 60, option.rect.top() + 20, bubbleWidth - 80, 30);
     painter->setPen(TEXT_COLOR);
-    painter->setFont(QFont("Arial", 10));
+    painter->setFont(QFont("Microsoft YaHei", 10));
     QString displayName = fileName.length() > 15 ? fileName.left(12) + "..." : fileName;
     painter->drawText(nameRect, Qt::AlignLeft | Qt::AlignVCenter, displayName);
 
@@ -187,7 +264,7 @@ void MessageDelegate::paintFileMessage(QPainter *painter, const QStyleOptionView
     m_lastFileUrl = fileUrl;
     m_lastFileName = fileName;
 
-    painter->setFont(QFont("Arial", 8));
+    painter->setFont(QFont("Microsoft YaHei", 8));
     painter->setPen(TIME_COLOR);
     int timeX = isSelf ? (bubbleRect.left()) : (bubbleRect.right() - 40);
     painter->drawText(QRect(timeX, bubbleRect.bottom() + 2, 40, 14), Qt::AlignHCenter, time);
