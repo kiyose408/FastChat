@@ -2,96 +2,160 @@
 #include "./ui_chatmainwindow.h"
 #include <QTimer>
 #include <QVBoxLayout>
+#include <QJsonObject>
+#include <QDateTime>
+#include <QFont>
+
 ChatMainWindow::ChatMainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::ChatMainWindow)
     , m_apiService(new ApiService(this))
     , m_webSocketClient(new WebSocketClient(this))
     , m_sessionManager(SessionManager::instance())
+    , m_friendRequestBadge(nullptr)
+    , m_friendRequestCount(0)
+    , m_currentFriendId(-1)
 {
     ui->setupUi(this);
     setWindowFlags(Qt::FramelessWindowHint);
-    // 初始化模型
+    
+    QFont userIdFont;
+    userIdFont.setBold(true);
+    userIdFont.setPointSize(12);
+    ui->userId_label->setFont(userIdFont);
+    ui->userId_label->setText(m_sessionManager.username());
+    
     m_friendModel = new FriendModel(this);
     m_messageModel = new MessageModel(this);
-    // 填充测试好友
-    m_friendModel->addFriend({1001, "张三", true, 2});
-    m_friendModel->addFriend({1002, "李四", false, 0});
-    m_friendModel->addFriend({1003, "王五", true, 5});
 
-    // 填充测试消息
-    m_messageModel->addMessage({false, "你好！", "10:30"});
-    m_messageModel->addMessage({true, "在呢~", "10:31"});
-    m_messageModel->addMessage({false, "能加个好友吗？", "10:32"});
-    m_messageModel->addMessage({true, "当然可以！", "10:33"});
-
-    // 设置视图
     ui->friend_List_listview->setModel(m_friendModel);
     ui->friend_List_listview->setItemDelegate(new FriendDelegate(this));
     ui->chatList_listview->setModel(m_messageModel);
     ui->chatList_listview->setItemDelegate(new MessageDelegate(this));
     ui->chatList_listview->setStyleSheet("QListView { background-color: #F8F8F8; }");
 
-
-    //链接点击事件
     connect(ui->friend_List_listview, &QListView::clicked, this, &ChatMainWindow::onFriendClicked);
 
-    //自动滚动到底部
     QTimer::singleShot(100, this, [this]() {
         ui->friend_List_listview->scrollToBottom();
     });
-
-    //恢复窗口大小
-    //resize(ConfigManager::instance().windowSize());
+    
+    m_friendRequestBadge = new QLabel(ui->addFriend_label->parentWidget());
+    m_friendRequestBadge->setStyleSheet(
+        "QLabel {"
+        "   background-color: #FF4444;"
+        "   color: white;"
+        "   border-radius: 8px;"
+        "   font-size: 10px;"
+        "   font-weight: bold;"
+        "   min-width: 16px;"
+        "   max-width: 16px;"
+        "   min-height: 16px;"
+        "   max-height: 16px;"
+        "   qproperty-alignment: AlignCenter;"
+        "}"
+    );
+    m_friendRequestBadge->hide();
+    
+    connect(m_apiService, &ApiService::getFriendRequestsSuccess, this, &ChatMainWindow::onGetFriendRequestsSuccess);
+    connect(m_apiService, &ApiService::getFriendRequestsFailed, this, &ChatMainWindow::onGetFriendRequestsFailed);
+    connect(m_apiService, &ApiService::getFriendsSuccess, this, &ChatMainWindow::onGetFriendsSuccess);
+    connect(m_apiService, &ApiService::getFriendsFailed, this, &ChatMainWindow::onGetFriendsFailed);
+    connect(m_apiService, &ApiService::sendMessageSuccess, this, &ChatMainWindow::onSendMessageSuccess);
+    connect(m_apiService, &ApiService::sendMessageFailed, this, &ChatMainWindow::onSendMessageFailed);
+    connect(m_apiService, &ApiService::getConversationSuccess, this, &ChatMainWindow::onGetConversationSuccess);
+    connect(m_apiService, &ApiService::getConversationFailed, this, &ChatMainWindow::onGetConversationFailed);
+    connect(m_apiService, &ApiService::deleteFriendSuccess, this, &ChatMainWindow::onDeleteFriendSuccess);
+    
+    QTimer::singleShot(500, this, [this]() {
+        m_apiService->getFriendRequests();
+        m_apiService->getFriends();
+    });
 }
 
 void ChatMainWindow::toggleMaxmize()
 {
     if (isMaximized()) {
-        //resize(QSize(800,580)) ;// 还原
         showNormal();
         qDebug("showNormal");
     } else {
-        showMaximized(); // 最大化
-
+        showMaximized();
         qDebug("showMax");
     }
 }
 
 ChatMainWindow::~ChatMainWindow()
 {
-    //保存窗口大小
     ConfigManager::instance().setWindowSize(size());
     delete ui;
 }
 
+void ChatMainWindow::updateFriendRequestBadge(int count)
+{
+    m_friendRequestCount = count;
+    
+    if (count > 0) {
+        QString displayText = count > 99 ? "99+" : QString::number(count);
+        m_friendRequestBadge->setText(displayText);
+        m_friendRequestBadge->show();
+        
+        QWidget* parent = ui->addFriend_label->parentWidget();
+        QRect labelRect = ui->addFriend_label->geometry();
+        int badgeX = labelRect.right() - 8;
+        int badgeY = labelRect.top() - 2;
+        m_friendRequestBadge->move(badgeX, badgeY);
+        m_friendRequestBadge->raise();
+    } else {
+        m_friendRequestBadge->hide();
+    }
+}
+
+void ChatMainWindow::refreshFriendList()
+{
+    m_apiService->getFriends();
+}
+
 void ChatMainWindow::onFriendClicked(const QModelIndex &index)
 {
-    int id = index.data(FriendModel::IdRole).toInt();
-    QString name = index.data(FriendModel::NicknameRole).toString();
-    qDebug() << "Selected friend:" << id << name;
+    m_currentFriendId = index.data(FriendModel::IdRole).toInt();
+    m_currentFriendName = index.data(FriendModel::NicknameRole).toString();
+    qDebug() << "Selected friend:" << m_currentFriendId << m_currentFriendName;
 
-    // 示例：清空并加载新聊天
-    m_messageModel->clear();
-    m_messageModel->addMessage({false, QString("Hello, %1!").arg(name), "现在"});
-    ui->chatList_listview->scrollToBottom();
+    ui->sessionUserId_label->setText(m_currentFriendName);
+    
+    m_apiService->getConversation(m_currentFriendId);
 }
 
 void ChatMainWindow::on_addFriend_label_clicked()
 {
     FriendManagementDialog* friendManagementDialog = new FriendManagementDialog(m_apiService, this);
 
-    // 设置窗口标志 (可选)
     friendManagementDialog->setWindowFlags(Qt::Dialog | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
-    // 设置为模态对话框
     friendManagementDialog->setModal(true);
-    // 关闭时自动删除
     friendManagementDialog->setAttribute(Qt::WA_DeleteOnClose);
 
     friendManagementDialog->show();
+    
+    connect(friendManagementDialog, &QDialog::destroyed, this, [this]() {
+        m_apiService->getFriendRequests();
+        m_apiService->getFriends();
+    });
 
 }
 
+void ChatMainWindow::on_more_label_clicked()
+{
+    if (m_currentFriendId <= 0) {
+        qDebug() << "请先选择一个好友";
+        return;
+    }
+    
+    FriendInfoDialog* friendInfoDialog = new FriendInfoDialog(m_apiService, m_currentFriendId, m_currentFriendName, this);
+    friendInfoDialog->setWindowFlags(Qt::Dialog | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+    friendInfoDialog->setModal(true);
+    friendInfoDialog->setAttribute(Qt::WA_DeleteOnClose);
+    friendInfoDialog->show();
+}
 
 void ChatMainWindow::on_esc_label_clicked()
 {
@@ -109,33 +173,136 @@ void ChatMainWindow::on_minus_label_clicked()
 {
     ChatMainWindow::showMinimized();
 }
-// --- 重写的鼠标事件处理函数 ---
+
+void ChatMainWindow::onGetFriendRequestsSuccess(const QJsonArray& requests)
+{
+    qDebug() << "主界面获取好友请求成功，共" << requests.size() << "个请求";
+    updateFriendRequestBadge(requests.size());
+}
+
+void ChatMainWindow::onGetFriendRequestsFailed(const QString& error)
+{
+    qDebug() << "主界面获取好友请求失败:" << error;
+}
+
+void ChatMainWindow::onGetFriendsSuccess(const QJsonArray& friends)
+{
+    qDebug() << "获取好友列表成功，共" << friends.size() << "个好友";
+    
+    m_friendModel->clear();
+    
+    for (const QJsonValue& friendValue : friends) {
+        QJsonObject friendObj = friendValue.toObject();
+        int friendId = friendObj["friend_id"].toInt();
+        QString username = friendObj["username"].toString();
+        
+        FriendData friendData;
+        friendData.id = friendId;
+        friendData.nickname = username;
+        friendData.isOnline = false;
+        friendData.unreadCount = 0;
+        
+        m_friendModel->addFriend(friendData);
+        qDebug() << "添加好友:" << friendId << username;
+    }
+}
+
+void ChatMainWindow::onGetFriendsFailed(const QString& error)
+{
+    qDebug() << "获取好友列表失败:" << error;
+}
+
+void ChatMainWindow::on_send_btn_clicked()
+{
+    if (m_currentFriendId <= 0) {
+        qDebug() << "请先选择一个好友";
+        return;
+    }
+    
+    QString content = ui->text_textEdit->toPlainText().trimmed();
+    if (content.isEmpty()) {
+        qDebug() << "消息内容不能为空";
+        return;
+    }
+    
+    m_apiService->sendMessage(m_currentFriendId, content);
+}
+
+void ChatMainWindow::onSendMessageSuccess(const QJsonObject& message)
+{
+    qDebug() << "消息发送成功:" << message;
+    
+    ui->text_textEdit->clear();
+    
+    QJsonObject data = message["data"].toObject();
+    QString content = data["content"].toString();
+    QString time = QDateTime::fromString(data["created_at"].toString(), Qt::ISODate).toString("hh:mm");
+    
+    m_messageModel->addMessage({true, content, time});
+    ui->chatList_listview->scrollToBottom();
+}
+
+void ChatMainWindow::onSendMessageFailed(const QString& error)
+{
+    qDebug() << "消息发送失败:" << error;
+}
+
+void ChatMainWindow::onGetConversationSuccess(const QJsonArray& messages)
+{
+    qDebug() << "获取对话记录成功，共" << messages.size() << "条消息";
+    
+    m_messageModel->clear();
+    
+    int currentUserId = m_sessionManager.userId();
+    
+    for (const QJsonValue& msgValue : messages) {
+        QJsonObject msgObj = msgValue.toObject();
+        int senderId = msgObj["sender_id"].toInt();
+        QString content = msgObj["content"].toString();
+        QString time = QDateTime::fromString(msgObj["created_at"].toString(), Qt::ISODate).toString("hh:mm");
+        
+        bool isMine = (senderId == currentUserId);
+        m_messageModel->addMessage({isMine, content, time});
+    }
+    
+    ui->chatList_listview->scrollToBottom();
+}
+
+void ChatMainWindow::onGetConversationFailed(const QString& error)
+{
+    qDebug() << "获取对话记录失败:" << error;
+}
+
+void ChatMainWindow::onDeleteFriendSuccess()
+{
+    qDebug() << "好友删除成功，刷新好友列表";
+    m_currentFriendId = -1;
+    m_currentFriendName.clear();
+    ui->sessionUserId_label->clear();
+    m_messageModel->clear();
+    m_apiService->getFriends();
+}
+
 void ChatMainWindow::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_isDragging = true;
         m_dragStartPosition = event->globalPosition().toPoint();
-        m_windowStartGeometry = geometry(); // 记录窗口开始拖动时的位置和大小
-        // qDebug() << "Mouse Pressed at global pos:" << m_dragStartPosition;
+        m_windowStartGeometry = geometry();
     }
-    QWidget::mousePressEvent(event); // 调用基类处理
+    QWidget::mousePressEvent(event);
 }
 
 void ChatMainWindow::mouseMoveEvent(QMouseEvent *event) {
     if (m_isDragging && event->buttons() & Qt::LeftButton) {
-        // 计算鼠标移动的偏移量
         QPoint delta = event->globalPosition().toPoint() - m_dragStartPosition;
-        // 更新窗口位置
         move(m_windowStartGeometry.topLeft() + delta);
-        // qDebug() << "Moving window to:" << m_windowStartGeometry.topLeft() + delta;
     }
-    QWidget::mouseMoveEvent(event); // 调用基类处理
+    QWidget::mouseMoveEvent(event);
 }
 
 void ChatMainWindow::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_isDragging = false;
-        // qDebug() << "Mouse Released";
     }
-    QWidget::mouseReleaseEvent(event); // 调用基类处理
+    QWidget::mouseReleaseEvent(event);
 }
-

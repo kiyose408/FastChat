@@ -16,10 +16,8 @@
 ApiService::ApiService(QObject *parent)
     : QObject(parent) // 调用父类 QObject 的构造函数
 {
-    // 连接 QNetworkAccessManager 的 finished 信号到当前对象的 onReplyFinished 槽函数
-    // 当任何网络请求完成后，都会触发此信号，从而调用 onReplyFinished 处理响应
-    connect(&m_netManager, &QNetworkAccessManager::finished,
-            this, &ApiService::onReplyFinished);
+    // 移除全局的 finished 信号连接，让每个请求自己处理自己的响应
+    // 这样可以避免响应被处理两次的问题
 }
 
 // 发起注册请求
@@ -46,7 +44,29 @@ void ApiService::registerUser(const QString &username, const QString &email, con
 
     qDebug() << "Sending POST request to" << url.toString() << "with data:" << data; // 调试
     // 使用网络管理器发起 POST 请求，将 data 作为请求体发送
-    m_netManager.post(request, data);
+    QNetworkReply* reply = m_netManager.post(request, data);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                QJsonObject json = doc.object();
+                if (json.contains("token")) {
+                    QString token = json["token"].toString();
+                    QJsonObject user = json["user"].toObject();
+                    emit registerSuccess(user, token);
+                } else {
+                    emit registerFailed(json["message"].toString("Registration failed"));
+                }
+            } else {
+                emit registerFailed("Invalid response format");
+            }
+        } else {
+            emit registerFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
 }
 
 // 发起登录请求
@@ -54,7 +74,6 @@ void ApiService::registerUser(const QString &username, const QString &email, con
 // 请求成功后，服务器会返回包含 token 和用户信息的 JSON 响应
 void ApiService::login(const QString &username, const QString &password)
 {
-
     QUrl url(baseUrl() + "/api/auth/login");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -69,7 +88,36 @@ void ApiService::login(const QString &username, const QString &password)
     QByteArray data = doc.toJson(); // 这个 data 就是即将发送的请求体
 
     qDebug() << "Sending POST request to" << url.toString() << "with data:" << data; // 调试
-    m_netManager.post(request, data);
+    QNetworkReply* reply = m_netManager.post(request, data);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                QJsonObject json = doc.object();
+                if (json.contains("token")) {
+                    QString token = json["token"].toString();
+                    QJsonObject user = json["user"].toObject();
+                    int userId = user["id"].toInt();
+                    QString username = user["username"].toString();
+
+                    SessionManager::instance().setToken(token);
+                    SessionManager::instance().setUserInfo(userId, username);
+                    SessionManager::instance().save();
+
+                    emit loginSuccess(user, token);
+                } else {
+                    emit loginFailed(json["message"].toString("Login failed"));
+                }
+            } else {
+                emit loginFailed("Invalid response format");
+            }
+        } else {
+            emit loginFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
 }
 
 //搜索用户
@@ -80,21 +128,34 @@ void ApiService::searchUsers(const QString &query)
         return;
     }
 
+    // 从 SessionManager 获取当前用户的认证 token
+    QString token = SessionManager::instance().token();
+    // 如果没有 token（即未登录），则不发送请求
+    if (token.isEmpty()) {
+        emit searchUsersFailed("Not authenticated.");
+        return;
+    }
+
     QUrl url(baseUrl() + "/api/friends/search");
     QUrlQuery queryItems;
     queryItems.addQueryItem("q", query);
     url.setQuery(queryItems);
 
     QNetworkRequest request(url);
+    // 设置请求头中的 Authorization 字段，使用 Bearer Token 认证方式
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     QNetworkReply* reply = m_netManager.get(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray data = reply->readAll();
+            qDebug() << "Received search response data:" << data;
             QJsonDocument doc = QJsonDocument::fromJson(data);
             if (doc.isArray()) {
+                qDebug() << "Response is array, length:" << doc.array().size();
                 emit searchUsersSuccess(doc.array());
             } else {
+                qDebug() << "Response is not array, isObject:" << doc.isObject() << "isNull:" << doc.isNull();
                 emit searchUsersFailed("Invalid response format.");
             }
         } else {
@@ -105,13 +166,21 @@ void ApiService::searchUsers(const QString &query)
 }
 
 // 新增：发送好友请求
-void ApiService::sendFriendRequest(int friendId) {
+void ApiService::sendFriendRequest(int friendId, const QString& note) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit sendFriendRequestFailed("Not authenticated.");
+        return;
+    }
+
     QUrl url(baseUrl() + "/api/friends/request");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
 
     QJsonObject json;
     json["friendId"] = friendId;
+    json["note"] = note;
     QJsonDocument doc(json);
     QByteArray data = doc.toJson(QJsonDocument::Compact);
 
@@ -144,9 +213,15 @@ void ApiService::getFriends() {
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray data = reply->readAll();
+            qDebug() << "Get friends response:" << data;
             QJsonDocument doc = QJsonDocument::fromJson(data);
-            if (doc.isArray()) {
-                emit getFriendsSuccess(doc.array());
+            if (doc.isObject()) {
+                QJsonObject obj = doc.object();
+                if (obj.contains("friends") && obj["friends"].isArray()) {
+                    emit getFriendsSuccess(obj["friends"].toArray());
+                } else {
+                    emit getFriendsFailed("Invalid response format: missing friends array.");
+                }
             } else {
                 emit getFriendsFailed("Invalid response format.");
             }
@@ -238,6 +313,64 @@ void ApiService::rejectFriendRequest(int requesterId) {
     });
 }
 
+void ApiService::deleteFriend(int friendId) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit deleteFriendFailed("Not authenticated.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/friends/" + QString::number(friendId));
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QNetworkReply* reply = m_netManager.deleteResource(request);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            emit deleteFriendSuccess();
+        } else {
+            emit deleteFriendFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
+void ApiService::updateFriendNote(int friendId, const QString& note) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit updateFriendNoteFailed("Not authenticated.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/friends/" + QString::number(friendId) + "/note");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QJsonObject json;
+    json["note"] = note;
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+    
+    QNetworkReply* reply = m_netManager.put(request, data);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit updateFriendNoteSuccess(doc.object());
+            } else {
+                emit updateFriendNoteFailed("Invalid response format.");
+            }
+        } else {
+            emit updateFriendNoteFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
 // 获取当前用户的详细信息
 // 在请求头中添加认证 token，向服务器请求当前登录用户的信息
 void ApiService::fetchUserInfo()
@@ -256,7 +389,22 @@ void ApiService::fetchUserInfo()
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
 
     // 使用网络管理器发起 GET 请求来获取用户信息
-    m_netManager.get(request);
+    QNetworkReply* reply = m_netManager.get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit userInfoFetched(doc.object());
+            } else {
+                qWarning() << "Invalid user info response format";
+            }
+        } else {
+            qWarning() << "Network error fetching user info:" << reply->errorString();
+        }
+        reply->deleteLater();
+    });
 }
 
 // 获取当前用户的好友列表
@@ -276,110 +424,88 @@ void ApiService::fetchFriends()
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
 
     // 使用网络管理器发起 GET 请求来获取好友列表
-    m_netManager.get(request);
+    QNetworkReply* reply = m_netManager.get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject() && doc.object().contains("data")) {
+                QJsonArray friends = doc.object()["data"].toArray();
+                emit friendsFetched(friends);
+            } else {
+                qWarning() << "Unexpected friends response structure";
+            }
+        } else {
+            qWarning() << "Network error fetching friends:" << reply->errorString();
+        }
+        reply->deleteLater();
+    });
 }
 
-// 处理网络请求完成的回调函数（槽函数）
-// 此函数在每次网络请求完成时被调用（无论是成功还是失败）
-void ApiService::onReplyFinished(QNetworkReply *reply)
-{
-    // 检查请求过程中是否有网络错误
-    if (reply->error() != QNetworkReply::NoError) {
-        // 如果有错误，记录警告信息
-        qWarning() << "Network error:" << reply->errorString();
-        // 发出登录失败信号，传递错误信息
-        emit loginFailed(reply->errorString());
-        // 释放 reply 对象占用的内存（Qt 中推荐的做法）
+void ApiService::sendMessage(int recipientId, const QString& content) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit sendMessageFailed("Not authenticated.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/messages/send");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QJsonObject json;
+    json["recipientId"] = recipientId;
+    json["content"] = content;
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+    
+    QNetworkReply* reply = m_netManager.post(request, data);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            qDebug() << "Send message response:" << data;
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit sendMessageSuccess(doc.object());
+            } else {
+                emit sendMessageFailed("Invalid response format.");
+            }
+        } else {
+            emit sendMessageFailed(reply->errorString());
+        }
         reply->deleteLater();
-        return; // 结束函数执行
-    }
+    });
+}
 
-    // 读取服务器返回的原始数据
-    QByteArray data = reply->readAll();
-    // 尝试将返回的数据解析为 JSON 文档
-    QJsonDocument doc = QJsonDocument::fromJson(data);
-    // 检查解析结果是否有效（必须是一个 JSON 对象）
-    if (!doc.isObject()) {
-        // 如果不是有效的 JSON 对象，发出登录失败信号
-        emit loginFailed("Invalid response format");
-        // 释放 reply 对象
+void ApiService::getConversation(int recipientId) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit getConversationFailed("Not authenticated.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/messages/conversation/" + QString::number(recipientId));
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QNetworkReply* reply = m_netManager.get(request);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            qDebug() << "Get conversation response:" << data;
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isArray()) {
+                emit getConversationSuccess(doc.array());
+            } else {
+                emit getConversationFailed("Invalid response format.");
+            }
+        } else {
+            emit getConversationFailed(reply->errorString());
+        }
         reply->deleteLater();
-        return; // 结束函数执行
-    }
-
-    // 将 JSON 文档转换为 JSON 对象，以便访问其键值对
-    QJsonObject json = doc.object();
-
-    // 获取原始请求的 URL，用于判断是哪个 API 调用的响应
-    QUrl requestUrl = reply->request().url();
-    // 获取请求路径部分
-    QString path = requestUrl.path();
-
-    // 根据请求路径判断是哪种类型的响应，并进行相应的处理
-    if (path == "/api/auth/login") {
-        // 处理登录 API 的响应
-        if (json.contains("token")) {
-            // 如果响应包含 token 字段，表示登录成功
-            QString token = json["token"].toString(); // 提取 token
-            // 提取用户信息对象
-            QJsonObject user = json["user"].toObject();
-            int userId = user["id"].toInt();        // 提取用户 ID
-            QString username = user["username"].toString(); // 提取用户名
-
-            // 使用 SessionManager 更新和保存会话信息（token 和用户信息）
-            SessionManager::instance().setToken(token);
-            SessionManager::instance().setUserInfo(userId, username);
-            SessionManager::instance().save(); // 持久化保存
-
-            // 发出登录成功的信号，传递用户对象和 token
-            emit loginSuccess(user, token);
-        } else {
-            // 如果响应不包含 token，说明登录失败
-            // 尝试提取服务器返回的错误消息，如果不存在则使用默认消息
-            emit loginFailed(json["message"].toString("Login failed"));
-        }
-    }
-    else if (path == "/api/auth/register") {
-        // 处理注册 API 的响应
-        if (json.contains("token")) {
-            // 注册成功，响应中包含 token 和 user
-            QString token = json["token"].toString(); // 提取 token
-            QJsonObject user = json["user"].toObject(); // 提取用户信息对象
-            // 注意：user 对象中通常包含 id, username, email 等字段
-            // 可以根据需要提取特定字段
-            // int userId = user["id"].toInt(); // 如果需要用户 ID
-            // QString username = user["username"].toString(); // 如果需要用户名
-
-            // --- 可选：保存会话信息 ---
-            // 如果注册后立即需要登录（比如前端自动登录），可以保存 token 和用户信息
-            // SessionManager::instance().setToken(token);
-            // SessionManager::instance().setUserInfo(userId, username); // 需要从 user 中提取
-            // SessionManager::instance().save();
-
-            // 发出注册成功的信号
-            emit registerSuccess(user, token); // 传递 user 和 token
-        } else {
-            // 注册失败，尝试提取服务器返回的错误消息
-            QString errorMessage = json["message"].toString("Registration failed"); // 提供默认消息
-            emit registerFailed(errorMessage);
-        }
-    }
-    else if (path == "/api/users/me") {
-        // 处理获取用户信息 API 的响应
-        // 直接发出用户信息获取成功的信号，将完整的 JSON 对象传递出去
-        emit userInfoFetched(json);
-    } else if (path == "/api/friends") {
-        // 处理获取好友列表 API 的响应
-        // 服务器返回的是 {"data": [...]}
-        if (json.contains("data") && json["data"].isArray()) {
-            QJsonArray friends = json["data"].toArray();
-            emit friendsFetched(friends);
-        } else {
-            qWarning() << "Unexpected friends response structure";
-
-        }
-    }
-
-    // 无论处理成功与否，都释放 reply 对象占用的内存
-    reply->deleteLater();
+    });
 }

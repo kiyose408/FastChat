@@ -3,23 +3,33 @@
 #include <QMessageBox>
 #include <QString>
 #include <utils/logger.h>
-RegisterDialog::RegisterDialog(ApiService* apiService,QWidget *parent)
+
+RegisterDialog::RegisterDialog(ApiService* apiService, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::RegisterDialog)
-    ,m_apiService(apiService)
+    , m_apiService(apiService)
 {
     qDebug() << "RegisterDialog constructor called.";
     qDebug() << "ApiService pointer passed to RegisterDialog:" << m_apiService;
 
-    if (!m_apiService) {
-        qWarning() << "Warning: ApiService pointer is null in RegisterDialog!";
-        // 或者可以抛出异常或设置错误标志
-        // 但这里最好在调用前就保证不为 null
-    }
-
     ui->setupUi(this);
-    setWindowFlags(Qt::FramelessWindowHint); // 取消注释这行来完全移除标题栏和边框
-    setWindowTitle("FastChat-注册"); // 或者留空 setWindowTitle("");
+    
+    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+    setWindowTitle("FastChat - 注册");
+    setFixedSize(size());
+    
+    connect(ui->closeBtn, &QPushButton::clicked, this, &RegisterDialog::reject);
+    
+    connect(m_apiService, &ApiService::registerSuccess, this, [this](const QJsonObject &user, const QString &token){
+        qDebug() << "Registration successful!";
+        QMessageBox::information(this, "成功", "注册成功！请登录。");
+        accept();
+    });
+
+    connect(m_apiService, &ApiService::registerFailed, this, [this](const QString &error){
+        qDebug() << "Registration failed:" << error;
+        QMessageBox::warning(this, "注册失败", error);
+    });
 }
 
 RegisterDialog::~RegisterDialog()
@@ -29,12 +39,11 @@ RegisterDialog::~RegisterDialog()
 
 void RegisterDialog::on_Register_btn_clicked()
 {
-    QString newUsername = ui->userId_lineEdit->text();
-    QString newEmail = ui->email_lineEdit->text();
+    QString newUsername = ui->userId_lineEdit->text().trimmed();
+    QString newEmail = ui->email_lineEdit->text().trimmed();
     QString newPassword = ui->userPassword_lineEdit->text();
     QString confirmPassword = ui->confirmUserPassword_lineEdit->text();
 
-    // 简单验证
     if (newUsername.isEmpty() || newEmail.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
         QMessageBox::warning(this, "错误", "所有字段都是必需的！");
         return;
@@ -45,22 +54,20 @@ void RegisterDialog::on_Register_btn_clicked()
         return;
     }
 
-    //  调用注册逻辑 API
-    m_apiService->registerUser(newUsername,newEmail,newPassword);
+    if (!newEmail.contains('@') || !newEmail.contains('.')) {
+        QMessageBox::warning(this, "错误", "请输入有效的邮箱地址！");
+        return;
+    }
 
-// 连接注册信号
-    connect(m_apiService, &ApiService::registerSuccess, this, [=](const QJsonObject &user, const QString &token){
-        qDebug() << "Registration successful!";
-        QMessageBox::information(this, tr("Success"), tr("Registration successful!"));
-        close(); // 关闭注册窗口
-});
+    if (newPassword.length() < 6) {
+        QMessageBox::warning(this, "错误", "密码长度至少为6位！");
+        return;
+    }
 
-    connect(m_apiService, &ApiService::registerFailed, this, [=](const QString &error){
-    // 处理注册失败
-    qDebug() << "Registration failed:" << error;
-    // 例如：显示错误提示
-    // 如果注册成功，接受对话框
-    accept(); // 这会触发 QDialog::accepted 信号
-    });
+    if (!m_apiService) {
+        QMessageBox::critical(this, "错误", "内部错误：无法连接到服务器！");
+        return;
+    }
+
+    m_apiService->registerUser(newUsername, newEmail, newPassword);
 }
-

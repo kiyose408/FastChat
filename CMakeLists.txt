@@ -55,9 +55,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         src/ui/RegisterDialog.h src/ui/RegisterDialog.cpp src/ui/RegisterDialog.ui
 
         src/ui/ClickableLabel.h src/ui/ClickableLabel.cpp
+        src/ui/UserDelegate.h src/ui/UserDelegate.cpp
+        src/ui/FriendRequestDelegate.h src/ui/FriendRequestDelegate.cpp
 
         resources/icons/search_32.svg
         src/ui/FriendManagementDialog.h src/ui/FriendManagementDialog.cpp src/ui/FriendManagementDialog.ui
+        src/ui/FriendInfoDialog.h src/ui/FriendInfoDialog.cpp src/ui/FriendInfoDialog.ui
 
 
 

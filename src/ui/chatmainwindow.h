@@ -12,6 +12,8 @@
 #include "core/SessionManager.h"
 #include "ui/ClickableLabel.h"
 #include "ui/FriendManagementDialog.h"
+#include "ui/FriendInfoDialog.h"
+#include <QLabel>
 class FriendModel;
 class MessageModel;
 QT_BEGIN_NAMESPACE
@@ -28,13 +30,32 @@ public:
     ChatMainWindow(QWidget *parent = nullptr);
     void toggleMaxmize();
     ~ChatMainWindow();
+    
+    void updateFriendRequestBadge(int count);
+    void refreshFriendList();
+
 private slots:
     void onFriendClicked(const QModelIndex &index);
     void on_addFriend_label_clicked();
+    void on_more_label_clicked();
 
     void on_esc_label_clicked();
     void on_max_label_clicked();
     void on_minus_label_clicked();
+    
+    void onGetFriendRequestsSuccess(const QJsonArray& requests);
+    void onGetFriendRequestsFailed(const QString& error);
+    
+    void onGetFriendsSuccess(const QJsonArray& friends);
+    void onGetFriendsFailed(const QString& error);
+    
+    void on_send_btn_clicked();
+    void onSendMessageSuccess(const QJsonObject& message);
+    void onSendMessageFailed(const QString& error);
+    void onGetConversationSuccess(const QJsonArray& messages);
+    void onGetConversationFailed(const QString& error);
+    
+    void onDeleteFriendSuccess();
 
 private:
     Ui::ChatMainWindow *ui;
@@ -43,17 +64,18 @@ private:
     WebSocketClient* m_webSocketClient;
     SessionManager& m_sessionManager;
     MessageModel *m_messageModel;
-    // 新增：用于拖动窗口的变量
-    bool m_isDragging;          // 标记是否正在拖动
-    QPoint m_dragStartPosition; // 记录鼠标按下时的全局坐标
-    QRect m_windowStartGeometry; // 记录窗口拖动前的几何位置
+    bool m_isDragging;
+    QPoint m_dragStartPosition;
+    QRect m_windowStartGeometry;
+    QLabel* m_friendRequestBadge;
+    int m_friendRequestCount;
+    int m_currentFriendId;
+    QString m_currentFriendName;
 
-    // 新增：处理鼠标移动事件
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
 
-    // 新增：处理自定义顶部栏的鼠标事件
     void handleTopBarMousePress(QMouseEvent *event);
     void handleTopBarMouseMove(QMouseEvent *event);
     void handleTopBarMouseRelease(QMouseEvent *event);
