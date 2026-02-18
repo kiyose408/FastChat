@@ -38,6 +38,8 @@ public:
     void uploadImage(const QString& filePath);
     void uploadFile(const QString& filePath);
     void uploadAvatar(const QString& filePath);
+    
+    void searchMessages(const QString& query);
 
 signals:
 
@@ -80,6 +82,9 @@ signals:
     void uploadFileFailed(const QString& error);
     void uploadAvatarSuccess(const QJsonObject& result);
     void uploadAvatarFailed(const QString& error);
+    
+    void searchMessagesSuccess(const QJsonArray& results, const QString& query);
+    void searchMessagesFailed(const QString& error);
 
 
 

@@ -13,6 +13,7 @@
 #include "ui/ClickableLabel.h"
 #include "ui/FriendManagementDialog.h"
 #include "ui/FriendInfoDialog.h"
+#include "ui/SearchResultsDialog.h"
 #include <QLabel>
 #include <QNetworkAccessManager>
 class FriendModel;
@@ -45,6 +46,7 @@ private slots:
     void on_pic_label_clicked();
     void on_file_label_clicked();
     void on_userAvatar_label_clicked();
+    void on_search_btn_clicked();
 
     void on_esc_label_clicked();
     void on_max_label_clicked();
@@ -82,6 +84,10 @@ private slots:
     void onUploadFileFailed(const QString& error);
     void onUploadAvatarSuccess(const QJsonObject& result);
     void onUploadAvatarFailed(const QString& error);
+    
+    void onSearchMessagesSuccess(const QJsonArray& results, const QString& query);
+    void onSearchMessagesFailed(const QString& error);
+    void onSearchMessageSelected(int friendId, const QString& friendName, int messageId);
 
 private:
     Ui::ChatMainWindow *ui;
@@ -100,6 +106,7 @@ private:
     bool m_hasUnreadMessages;
     int m_selectedMessageId;
     QNetworkAccessManager m_avatarNetworkManager;
+    SearchResultsDialog* m_searchResultsDialog;
 
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;

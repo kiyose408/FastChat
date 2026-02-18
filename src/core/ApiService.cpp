@@ -700,3 +700,47 @@ void ApiService::uploadAvatar(const QString& filePath) {
         reply->deleteLater();
     });
 }
+
+void ApiService::searchMessages(const QString& query) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit searchMessagesFailed("Not authenticated.");
+        return;
+    }
+    
+    if (query.trimmed().isEmpty()) {
+        emit searchMessagesFailed("Search query is empty.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/messages/search");
+    QUrlQuery urlQuery;
+    urlQuery.addQueryItem("q", query.trimmed());
+    url.setQuery(urlQuery);
+    
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QNetworkReply* reply = m_netManager.get(request);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply, query]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            qDebug() << "Search messages response:" << data;
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                QJsonObject obj = doc.object();
+                if (obj.contains("results") && obj["results"].isArray()) {
+                    emit searchMessagesSuccess(obj["results"].toArray(), query);
+                } else {
+                    emit searchMessagesFailed("Invalid response format.");
+                }
+            } else {
+                emit searchMessagesFailed("Invalid response format.");
+            }
+        } else {
+            emit searchMessagesFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}

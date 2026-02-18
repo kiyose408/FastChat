@@ -24,6 +24,7 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     , m_currentFriendId(-1)
     , m_hasUnreadMessages(false)
     , m_selectedMessageId(-1)
+    , m_searchResultsDialog(nullptr)
 {
     ui->setupUi(this);
     setWindowFlags(Qt::FramelessWindowHint);
@@ -86,6 +87,8 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     connect(m_apiService, &ApiService::uploadFileFailed, this, &ChatMainWindow::onUploadFileFailed);
     connect(m_apiService, &ApiService::uploadAvatarSuccess, this, &ChatMainWindow::onUploadAvatarSuccess);
     connect(m_apiService, &ApiService::uploadAvatarFailed, this, &ChatMainWindow::onUploadAvatarFailed);
+    connect(m_apiService, &ApiService::searchMessagesSuccess, this, &ChatMainWindow::onSearchMessagesSuccess);
+    connect(m_apiService, &ApiService::searchMessagesFailed, this, &ChatMainWindow::onSearchMessagesFailed);
     
     connect(m_webSocketClient, &WebSocketClient::connected, this, &ChatMainWindow::onWebSocketConnected);
     connect(m_webSocketClient, &WebSocketClient::disconnected, this, &ChatMainWindow::onWebSocketDisconnected);
@@ -702,5 +705,66 @@ void ChatMainWindow::on_userAvatar_label_clicked()
             qDebug() << "保存裁切后的头像失败";
         }
     }
+}
+
+void ChatMainWindow::on_search_btn_clicked()
+{
+    QString query = ui->search_line_edit->text().trimmed();
+    if (query.isEmpty()) {
+        qDebug() << "搜索内容为空";
+        return;
+    }
+    
+    qDebug() << "搜索消息:" << query;
+    m_apiService->searchMessages(query);
+}
+
+void ChatMainWindow::onSearchMessagesSuccess(const QJsonArray& results, const QString& query)
+{
+    qDebug() << "搜索成功，找到" << results.size() << "条消息";
+    
+    if (!m_searchResultsDialog) {
+        m_searchResultsDialog = new SearchResultsDialog(this);
+        m_searchResultsDialog->setWindowFlags(Qt::Dialog | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+        connect(m_searchResultsDialog, &SearchResultsDialog::messageSelected, 
+                this, &ChatMainWindow::onSearchMessageSelected);
+    }
+    
+    m_searchResultsDialog->setResults(results, query);
+    m_searchResultsDialog->show();
+    m_searchResultsDialog->raise();
+    m_searchResultsDialog->activateWindow();
+}
+
+void ChatMainWindow::onSearchMessagesFailed(const QString& error)
+{
+    qDebug() << "搜索失败:" << error;
+}
+
+void ChatMainWindow::onSearchMessageSelected(int friendId, const QString& friendName, int messageId)
+{
+    qDebug() << "选择搜索结果，好友ID:" << friendId << "消息ID:" << messageId;
+    
+    for (int i = 0; i < m_friendModel->rowCount(); ++i) {
+        QModelIndex index = m_friendModel->index(i);
+        int id = index.data(FriendModel::IdRole).toInt();
+        if (id == friendId) {
+            ui->friend_List_listview->setCurrentIndex(index);
+            onFriendClicked(index);
+            break;
+        }
+    }
+    
+    QTimer::singleShot(300, this, [this, messageId]() {
+        for (int i = 0; i < m_messageModel->rowCount(); ++i) {
+            QModelIndex index = m_messageModel->index(i);
+            int msgId = index.data(MessageModel::MessageIdRole).toInt();
+            if (msgId == messageId) {
+                ui->chatList_listview->scrollTo(index);
+                ui->chatList_listview->setCurrentIndex(index);
+                break;
+            }
+        }
+    });
 }
 
