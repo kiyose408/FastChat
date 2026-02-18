@@ -31,6 +31,8 @@ signals:
     void friendRequestReceived(int userId, const QString& username, const QString& note);
     void friendRequestAccepted(int friendId, const QString& username);
     void friendDeleted(int friendId);
+    
+    void userStatusChanged(int userId, bool isOnline);
 
 private slots:
     void onConnected();
@@ -46,6 +48,7 @@ private:
     void handleFriendRequest(const QJsonObject& data);
     void handleFriendRequestAccepted(const QJsonObject& data);
     void handleFriendDeleted(const QJsonObject& data);
+    void handleUserStatus(const QJsonObject& data);
 };
 
 #endif // WEBSOCKETCLIENT_H

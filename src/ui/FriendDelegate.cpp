@@ -1,67 +1,78 @@
 #include "FriendDelegate.h"
+#include "core/FriendModel.h"
 #include <QPainter>
 #include <QFontMetrics>
 
-// =============== 颜色主题配置区（便于后期维护和换肤） ===============
-static const QColor SELECTED_BACKGROUND_COLOR(0x34, 0x98, 0xDB); // #3498DB - 选中项背景色
-static const QColor AVATAR_BACKGROUND_COLOR(0x4A, 0x90, 0xE2);   // #4A90E2 - 头像背景色
-static const QColor TEXT_COLOR_BLACK(Qt::black);                  // 黑色文字
-static const QColor ONLINE_STATUS_COLOR(Qt::green);               // 在线状态绿色
-static const QColor OFFLINE_STATUS_COLOR(Qt::gray);               // 离线状态灰色
-static const QColor UNREAD_DOT_COLOR(Qt::red);                    // 未读红点颜色
-static const QColor DIVIDER_COLOR(0xEE, 0xEE, 0xEE);              // 分割线颜色
-// =======================================================
+static const QColor SELECTED_BACKGROUND_COLOR(0x34, 0x98, 0xDB);
+static const QColor AVATAR_BACKGROUND_COLOR(0x4A, 0x90, 0xE2);
+static const QColor TEXT_COLOR_BLACK(Qt::black);
+static const QColor ONLINE_STATUS_COLOR(0x2E, 0xCC, 0x71);
+static const QColor OFFLINE_STATUS_COLOR(0x95, 0xA5, 0xA6);
+static const QColor UNREAD_DOT_COLOR(0xE7, 0x4C, 0x3C);
+static const QColor DIVIDER_COLOR(0xEE, 0xEE, 0xEE);
 
 void FriendDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
     painter->save();
 
-    // 背景
-    if (option.state & QStyle::State_Selected)
-        painter->fillRect(option.rect, option.palette.highlight());
-    else
+    if (option.state & QStyle::State_Selected) {
+        painter->fillRect(option.rect, SELECTED_BACKGROUND_COLOR);
+    } else {
         painter->fillRect(option.rect, Qt::white);
+    }
 
     int id = index.data(FriendModel::IdRole).toInt();
     QString nickname = index.data(FriendModel::NicknameRole).toString();
-    bool online = index.data(FriendModel::OnlineRole).toBool();
-    int unread = index.data(FriendModel::UnreadRole).toInt();
+    bool isOnline = index.data(FriendModel::IsOnlineRole).toBool();
+    int unread = index.data(FriendModel::UnreadCountRole).toInt();
 
-    // 头像区域
     QRect avatarRect = option.rect.adjusted(10, 10, 0, -10);
-    avatarRect.setWidth(40); avatarRect.setHeight(40);
+    avatarRect.setWidth(40);
+    avatarRect.setHeight(40);
 
-    // 绘制头像（圆形背景 + 首字母）
     painter->setBrush(AVATAR_BACKGROUND_COLOR);
     painter->setPen(Qt::NoPen);
     painter->drawEllipse(avatarRect);
+
     painter->setPen(Qt::white);
-    painter->setFont(QFont("Arial", 16, QFont::Bold));
+    painter->setFont(QFont("Microsoft YaHei", 16, QFont::Bold));
     painter->drawText(avatarRect, Qt::AlignCenter, nickname.left(1).toUpper());
 
-    // 昵称
     QRect nameRect = option.rect.adjusted(60, 10, -10, -30);
-    painter->setPen(TEXT_COLOR_BLACK);
-    painter->setFont(QFont("Arial", 12, QFont::Bold));
-    painter->drawText(nameRect, nickname);
+    painter->setPen(option.state & QStyle::State_Selected ? Qt::white : TEXT_COLOR_BLACK);
+    painter->setFont(QFont("Microsoft YaHei", 11, QFont::Bold));
+    painter->drawText(nameRect, Qt::AlignLeft | Qt::AlignVCenter, nickname);
 
-    // 在线状态
-    painter->setPen(online ? ONLINE_STATUS_COLOR : OFFLINE_STATUS_COLOR);
-    painter->setFont(QFont("Arial", 9));
-    QRect statusRect = nameRect.adjusted(0, 20, 0, 0);
-    painter->drawText(statusRect, online ? "● 在线" : "○ 离线");
+    QRect statusRect = option.rect.adjusted(60, 32, -10, -10);
+    painter->setPen(isOnline ? ONLINE_STATUS_COLOR : OFFLINE_STATUS_COLOR);
+    painter->setFont(QFont("Microsoft YaHei", 9));
+    QString statusText = isOnline ? QString::fromUtf8("在线") : QString::fromUtf8("离线");
+    painter->drawText(statusRect, Qt::AlignLeft | Qt::AlignVCenter, statusText);
 
-    // 未读红点
+    int statusDotSize = 8;
+    int statusDotX = statusRect.left() - statusDotSize - 4;
+    int statusDotY = statusRect.top() + (statusRect.height() - statusDotSize) / 2;
+    QRect statusDotRect(statusDotX, statusDotY, statusDotSize, statusDotSize);
+    painter->setBrush(isOnline ? ONLINE_STATUS_COLOR : OFFLINE_STATUS_COLOR);
+    painter->setPen(Qt::NoPen);
+    painter->drawEllipse(statusDotRect);
+
     if (unread > 0) {
-        QRect dotRect(option.rect.right() - 40, option.rect.top() + 15, 20, 20);
+        QString unreadText = unread > 99 ? "99+" : QString::number(unread);
+        QFont unreadFont("Microsoft YaHei", 8, QFont::Bold);
+        QFontMetrics fm(unreadFont);
+        int textWidth = fm.horizontalAdvance(unreadText);
+        int badgeWidth = qMax(textWidth + 10, 18);
+        
+        QRect badgeRect(option.rect.right() - badgeWidth - 10, option.rect.top() + 10, badgeWidth, 18);
         painter->setBrush(UNREAD_DOT_COLOR);
         painter->setPen(Qt::NoPen);
-        painter->drawEllipse(dotRect);
+        painter->drawRoundedRect(badgeRect, 9, 9);
+        
         painter->setPen(Qt::white);
-        painter->setFont(QFont("Arial", 8, QFont::Bold));
-        painter->drawText(dotRect, Qt::AlignCenter, QString::number(unread));
+        painter->setFont(unreadFont);
+        painter->drawText(badgeRect, Qt::AlignCenter, unreadText);
     }
 
-    // 分割线
     painter->setPen(DIVIDER_COLOR);
     painter->drawLine(option.rect.bottomLeft(), option.rect.bottomRight());
 

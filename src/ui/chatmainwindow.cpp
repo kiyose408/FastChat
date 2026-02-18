@@ -80,6 +80,7 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     connect(m_webSocketClient, &WebSocketClient::friendRequestReceived, this, &ChatMainWindow::onWebSocketFriendRequestReceived);
     connect(m_webSocketClient, &WebSocketClient::friendRequestAccepted, this, &ChatMainWindow::onWebSocketFriendRequestAccepted);
     connect(m_webSocketClient, &WebSocketClient::friendDeleted, this, &ChatMainWindow::onWebSocketFriendDeleted);
+    connect(m_webSocketClient, &WebSocketClient::userStatusChanged, this, &ChatMainWindow::onWebSocketUserStatusChanged);
     
     QTimer::singleShot(500, this, [this]() {
         m_apiService->getFriendRequests();
@@ -242,15 +243,16 @@ void ChatMainWindow::onGetFriendsSuccess(const QJsonArray& friends)
         QJsonObject friendObj = friendValue.toObject();
         int friendId = friendObj["friend_id"].toInt();
         QString username = friendObj["username"].toString();
+        bool isOnline = friendObj["is_online"].toBool();
         
         FriendData friendData;
         friendData.id = friendId;
         friendData.nickname = username;
-        friendData.isOnline = false;
+        friendData.isOnline = isOnline;
         friendData.unreadCount = 0;
         
         m_friendModel->addFriend(friendData);
-        qDebug() << "添加好友:" << friendId << username;
+        qDebug() << "添加好友:" << friendId << username << "在线:" << isOnline;
     }
 }
 
@@ -438,6 +440,12 @@ void ChatMainWindow::onWebSocketFriendDeleted(int friendId)
     }
     
     m_apiService->getFriends();
+}
+
+void ChatMainWindow::onWebSocketUserStatusChanged(int userId, bool isOnline)
+{
+    qDebug() << "好友在线状态变化，用户ID:" << userId << "在线:" << isOnline;
+    m_friendModel->updateOnlineStatus(userId, isOnline);
 }
 
 void ChatMainWindow::onUploadImageSuccess(const QJsonObject& result)

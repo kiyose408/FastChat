@@ -67,6 +67,7 @@ private slots:
     void onWebSocketFriendRequestReceived(int userId, const QString& username, const QString& note);
     void onWebSocketFriendRequestAccepted(int friendId, const QString& username);
     void onWebSocketFriendDeleted(int friendId);
+    void onWebSocketUserStatusChanged(int userId, bool isOnline);
     
     void onUploadImageSuccess(const QJsonObject& result);
     void onUploadImageFailed(const QString& error);

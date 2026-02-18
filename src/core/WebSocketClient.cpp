@@ -122,11 +122,13 @@ void WebSocketClient::onTextMessageReceived(const QString& message)
     else if (type == "friend_deleted") {
         handleFriendDeleted(json["data"].toObject());
     }
+    else if (type == "user_status") {
+        handleUserStatus(json);
+    }
     else if (type == "auth_error") {
         emit errorOccurred(json["message"].toString());
     }
     else if (type == "pong") {
-        // Heartbeat response, ignore
     }
     else {
         qDebug() << "Unknown message type:" << type;
@@ -171,4 +173,13 @@ void WebSocketClient::handleFriendDeleted(const QJsonObject& data)
     
     qDebug() << "Friend deleted notification received, friend ID:" << friendId;
     emit friendDeleted(friendId);
+}
+
+void WebSocketClient::handleUserStatus(const QJsonObject& data)
+{
+    int userId = data["userId"].toInt();
+    bool isOnline = data["isOnline"].toBool();
+    
+    qDebug() << "User status changed, user ID:" << userId << "online:" << isOnline;
+    emit userStatusChanged(userId, isOnline);
 }
