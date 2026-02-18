@@ -5,6 +5,7 @@
 #include <QVector>
 
 struct MessageData {
+    int messageId;
     bool isSelf;
     QString text;
     QString time;
@@ -12,6 +13,7 @@ struct MessageData {
     QString fileUrl;
     QString fileName;
     bool isRead;
+    bool isRecalled;
 };
 
 class MessageModel : public QAbstractListModel {
@@ -19,13 +21,15 @@ class MessageModel : public QAbstractListModel {
 
 public:
     enum Role {
-        IsSelfRole = Qt::UserRole + 1,
+        MessageIdRole = Qt::UserRole + 1,
+        IsSelfRole,
         TextRole,
         TimeRole,
         MessageTypeRole,
         FileUrlRole,
         FileNameRole,
-        IsReadRole
+        IsReadRole,
+        IsRecalledRole
     };
 
     explicit MessageModel(QObject *parent = nullptr);
@@ -37,6 +41,7 @@ public:
     void addMessage(const MessageData &msg);
     void markAllAsRead();
     void markSentAsRead();
+    void recallMessage(int messageId);
     void clear();
 
 private:

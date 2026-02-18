@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QFont>
 #include <QFileDialog>
+#include <QMenu>
 
 ChatMainWindow::ChatMainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -17,6 +18,7 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     , m_friendRequestCount(0)
     , m_currentFriendId(-1)
     , m_hasUnreadMessages(false)
+    , m_selectedMessageId(-1)
 {
     ui->setupUi(this);
     setWindowFlags(Qt::FramelessWindowHint);
@@ -35,8 +37,10 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     ui->chatList_listview->setModel(m_messageModel);
     ui->chatList_listview->setItemDelegate(new MessageDelegate(this));
     ui->chatList_listview->setStyleSheet("QListView { background-color: #F8F8F8; }");
+    ui->chatList_listview->setContextMenuPolicy(Qt::CustomContextMenu);
 
     connect(ui->friend_List_listview, &QListView::clicked, this, &ChatMainWindow::onFriendClicked);
+    connect(ui->chatList_listview, &QListView::customContextMenuRequested, this, &ChatMainWindow::showContextMenu);
     
     ui->chatList_listview->installEventFilter(this);
     ui->text_textEdit->installEventFilter(this);
@@ -86,6 +90,7 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     connect(m_webSocketClient, &WebSocketClient::friendDeleted, this, &ChatMainWindow::onWebSocketFriendDeleted);
     connect(m_webSocketClient, &WebSocketClient::userStatusChanged, this, &ChatMainWindow::onWebSocketUserStatusChanged);
     connect(m_webSocketClient, &WebSocketClient::messagesRead, this, &ChatMainWindow::onWebSocketMessagesRead);
+    connect(m_webSocketClient, &WebSocketClient::messageRecalled, this, &ChatMainWindow::onWebSocketMessageRecalled);
     
     QTimer::singleShot(500, this, [this]() {
         m_apiService->getFriendRequests();
@@ -294,14 +299,17 @@ void ChatMainWindow::onSendMessageSuccess(const QJsonObject& message)
     ui->text_textEdit->clear();
     
     QJsonObject data = message["data"].toObject();
+    int messageId = data["id"].toInt();
     QString content = data["content"].toString();
     QString time = QDateTime::fromString(data["created_at"].toString(), Qt::ISODate).toString("hh:mm");
     
     MessageData msgData;
+    msgData.messageId = messageId;
     msgData.isSelf = true;
     msgData.text = content;
     msgData.time = time;
     msgData.isRead = false;
+    msgData.isRecalled = false;
     
     m_messageModel->addMessage(msgData);
     ui->chatList_listview->scrollToBottom();
@@ -322,6 +330,7 @@ void ChatMainWindow::onGetConversationSuccess(const QJsonArray& messages)
     
     for (const QJsonValue& msgValue : messages) {
         QJsonObject msgObj = msgValue.toObject();
+        int messageId = msgObj["id"].toInt();
         int senderId = msgObj["sender_id"].toInt();
         QString content = msgObj["content"].toString();
         QString time = QDateTime::fromString(msgObj["created_at"].toString(), Qt::ISODate).toString("hh:mm");
@@ -329,10 +338,12 @@ void ChatMainWindow::onGetConversationSuccess(const QJsonArray& messages)
         QString fileUrl = msgObj["file_url"].toString();
         QString fileName = msgObj["file_name"].toString();
         bool isRead = msgObj["is_read"].toBool();
+        bool isRecalled = msgObj["is_recalled"].toBool();
         
         bool isMine = (senderId == currentUserId);
         
         MessageData msgData;
+        msgData.messageId = messageId;
         msgData.isSelf = isMine;
         msgData.text = content;
         msgData.time = time;
@@ -340,6 +351,7 @@ void ChatMainWindow::onGetConversationSuccess(const QJsonArray& messages)
         msgData.fileUrl = fileUrl;
         msgData.fileName = fileName;
         msgData.isRead = isRead;
+        msgData.isRecalled = isRecalled;
         
         m_messageModel->addMessage(msgData);
     }
@@ -381,16 +393,17 @@ void ChatMainWindow::onWebSocketMessageReceived(const QJsonObject& message)
 {
     qDebug() << "收到WebSocket消息:" << message;
     
+    int messageId = message["id"].toInt();
     int senderId = message["sender_id"].toInt();
     QString content = message["content"].toString();
     QString time = QDateTime::fromString(message["created_at"].toString(), Qt::ISODate).toString("hh:mm");
     QString messageType = message["message_type"].toString("text");
     QString fileUrl = message["file_url"].toString();
     QString fileName = message["file_name"].toString();
-    bool isRead = message["is_read"].toBool();
     
     if (senderId == m_currentFriendId) {
         MessageData msgData;
+        msgData.messageId = messageId;
         msgData.isSelf = false;
         msgData.text = content;
         msgData.time = time;
@@ -398,6 +411,7 @@ void ChatMainWindow::onWebSocketMessageReceived(const QJsonObject& message)
         msgData.fileUrl = fileUrl;
         msgData.fileName = fileName;
         msgData.isRead = false;
+        msgData.isRecalled = false;
         
         m_messageModel->addMessage(msgData);
         ui->chatList_listview->scrollToBottom();
@@ -413,6 +427,7 @@ void ChatMainWindow::onWebSocketMessageSent(const QJsonObject& message)
     
     ui->text_textEdit->clear();
     
+    int messageId = message["id"].toInt();
     QString content = message["content"].toString();
     QString time = QDateTime::fromString(message["created_at"].toString(), Qt::ISODate).toString("hh:mm");
     QString messageType = message["message_type"].toString("text");
@@ -420,6 +435,7 @@ void ChatMainWindow::onWebSocketMessageSent(const QJsonObject& message)
     QString fileName = message["file_name"].toString();
     
     MessageData msgData;
+    msgData.messageId = messageId;
     msgData.isSelf = true;
     msgData.text = content;
     msgData.time = time;
@@ -427,6 +443,7 @@ void ChatMainWindow::onWebSocketMessageSent(const QJsonObject& message)
     msgData.fileUrl = fileUrl;
     msgData.fileName = fileName;
     msgData.isRead = false;
+    msgData.isRecalled = false;
     
     m_messageModel->addMessage(msgData);
     ui->chatList_listview->scrollToBottom();
@@ -470,6 +487,46 @@ void ChatMainWindow::onWebSocketMessagesRead(int recipientId)
     Q_UNUSED(recipientId);
     qDebug() << "消息已被阅读，接收者ID:" << recipientId;
     m_messageModel->markSentAsRead();
+}
+
+void ChatMainWindow::onWebSocketMessageRecalled(int messageId)
+{
+    qDebug() << "消息已撤回，消息ID:" << messageId;
+    m_messageModel->recallMessage(messageId);
+}
+
+void ChatMainWindow::showContextMenu(const QPoint &pos)
+{
+    QModelIndex index = ui->chatList_listview->indexAt(pos);
+    if (!index.isValid()) return;
+    
+    bool isSelf = index.data(MessageModel::IsSelfRole).toBool();
+    bool isRecalled = index.data(MessageModel::IsRecalledRole).toBool();
+    
+    if (!isSelf || isRecalled) return;
+    
+    m_selectedMessageId = index.data(MessageModel::MessageIdRole).toInt();
+    
+    QMenu contextMenu(tr("上下文菜单"), this);
+    QAction *recallAction = contextMenu.addAction(tr("撤回消息"));
+    
+    connect(recallAction, &QAction::triggered, this, &ChatMainWindow::onRecallMessage);
+    
+    contextMenu.exec(ui->chatList_listview->mapToGlobal(pos));
+}
+
+void ChatMainWindow::onRecallMessage()
+{
+    if (m_selectedMessageId <= 0 || m_currentFriendId <= 0) {
+        qDebug() << "无法撤回消息：消息ID或好友ID无效";
+        return;
+    }
+    
+    qDebug() << "撤回消息，消息ID:" << m_selectedMessageId << "好友ID:" << m_currentFriendId;
+    
+    if (m_webSocketClient->isConnected()) {
+        m_webSocketClient->recallMessage(m_selectedMessageId, m_currentFriendId);
+    }
 }
 
 void ChatMainWindow::onUploadImageSuccess(const QJsonObject& result)

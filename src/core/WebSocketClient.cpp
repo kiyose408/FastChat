@@ -92,6 +92,23 @@ void WebSocketClient::markMessagesAsRead(int senderId)
     qDebug() << "Mark read sent via WebSocket:" << json;
 }
 
+void WebSocketClient::recallMessage(int messageId, int recipientId)
+{
+    if (!isConnected()) {
+        qWarning() << "WebSocket not connected!";
+        return;
+    }
+
+    QJsonObject json;
+    json["type"] = "recall_message";
+    json["messageId"] = messageId;
+    json["recipientId"] = recipientId;
+
+    QJsonDocument doc(json);
+    m_socket.sendTextMessage(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
+    qDebug() << "Recall message sent via WebSocket:" << json;
+}
+
 void WebSocketClient::onConnected()
 {
     qDebug() << "WebSocket connected!";
@@ -145,6 +162,11 @@ void WebSocketClient::onTextMessageReceived(const QString& message)
         int recipientId = json["recipientId"].toInt();
         qDebug() << "Messages read by recipient:" << recipientId;
         emit messagesRead(recipientId);
+    }
+    else if (type == "message_recalled") {
+        int messageId = json["messageId"].toInt();
+        qDebug() << "Message recalled:" << messageId;
+        emit messageRecalled(messageId);
     }
     else if (type == "auth_error") {
         emit errorOccurred(json["message"].toString());

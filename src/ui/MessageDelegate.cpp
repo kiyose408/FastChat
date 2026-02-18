@@ -24,6 +24,7 @@ static const QColor FILE_ICON_COLOR(100, 100, 100);
 static const QColor LOADING_COLOR(200, 200, 200);
 static const QColor READ_COLOR(136, 136, 136);
 static const QColor UNREAD_COLOR(100, 149, 237);
+static const QColor RECALLED_COLOR(150, 150, 150);
 
 QSize MessageDelegate::calculateTextSize(const QString &text) const {
     QFont font("Microsoft YaHei", 10);
@@ -107,8 +108,11 @@ void MessageDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
     QString fileUrl = index.data(MessageModel::FileUrlRole).toString();
     QString fileName = index.data(MessageModel::FileNameRole).toString();
     bool isRead = index.data(MessageModel::IsReadRole).toBool();
+    bool isRecalled = index.data(MessageModel::IsRecalledRole).toBool();
 
-    if (messageType == "image") {
+    if (isRecalled) {
+        paintRecalledMessage(painter, option, isSelf);
+    } else if (messageType == "image") {
         paintImageMessage(painter, option, isSelf, fileUrl, time, isRead);
     } else if (messageType == "file") {
         paintFileMessage(painter, option, isSelf, fileName, fileUrl, time, isRead);
@@ -300,6 +304,30 @@ void MessageDelegate::paintFileMessage(QPainter *painter, const QStyleOptionView
     }
 }
 
+void MessageDelegate::paintRecalledMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf) const {
+    QFont font("Microsoft YaHei", 10);
+    QFontMetrics fm(font);
+    
+    QString recalledText = isSelf ? QString::fromUtf8("你撤回了一条消息") : QString::fromUtf8("对方撤回了一条消息");
+    int textWidth = fm.horizontalAdvance(recalledText);
+    
+    int bubbleWidth = textWidth + 20;
+    int bubbleHeight = 30;
+
+    int x = isSelf ? (option.rect.right() - bubbleWidth - 10) : 10;
+    QRect bubbleRect(x, option.rect.top() + 5, bubbleWidth, bubbleHeight);
+
+    painter->setBrush(OTHER_BUBBLE_COLOR);
+    painter->setPen(QPen(BUBBLE_BORDER_COLOR, 1));
+    QPainterPath path;
+    path.addRoundedRect(bubbleRect, 12, 12);
+    painter->drawPath(path);
+
+    painter->setFont(font);
+    painter->setPen(RECALLED_COLOR);
+    painter->drawText(bubbleRect, Qt::AlignCenter, recalledText);
+}
+
 bool MessageDelegate::editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index) {
     Q_UNUSED(model);
     
@@ -324,6 +352,12 @@ bool MessageDelegate::editorEvent(QEvent *event, QAbstractItemModel *model, cons
 }
 
 QSize MessageDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const {
+    bool isRecalled = index.data(MessageModel::IsRecalledRole).toBool();
+    
+    if (isRecalled) {
+        return QSize(option.rect.width(), 40);
+    }
+    
     QString messageType = index.data(MessageModel::MessageTypeRole).toString();
     
     if (messageType == "image") {

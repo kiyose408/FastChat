@@ -19,6 +19,7 @@ public:
     void sendMessage(int recipientId, const QString& text);
     void sendFileMessage(int recipientId, const QString& fileUrl, const QString& fileName, const QString& messageType);
     void markMessagesAsRead(int senderId);
+    void recallMessage(int messageId, int recipientId);
 
 signals:
     void connected();
@@ -28,6 +29,7 @@ signals:
     void messageReceived(const QJsonObject& message);
     void messageSent(const QJsonObject& message);
     void messageError(const QString& error);
+    void messageRecalled(int messageId);
     
     void friendRequestReceived(int userId, const QString& username, const QString& note);
     void friendRequestAccepted(int friendId, const QString& username);

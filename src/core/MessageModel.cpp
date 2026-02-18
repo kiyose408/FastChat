@@ -16,6 +16,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const {
     const auto &m = m_messages.at(index.row());
 
     switch (role) {
+    case MessageIdRole: return m.messageId;
     case IsSelfRole: return m.isSelf;
     case TextRole:   return m.text;
     case TimeRole:   return m.time;
@@ -23,12 +24,14 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const {
     case FileUrlRole: return m.fileUrl;
     case FileNameRole: return m.fileName;
     case IsReadRole: return m.isRead;
+    case IsRecalledRole: return m.isRecalled;
     default:         return QVariant();
     }
 }
 
 QHash<int, QByteArray> MessageModel::roleNames() const {
     QHash<int, QByteArray> roles;
+    roles[MessageIdRole] = "messageId";
     roles[IsSelfRole] = "isSelf";
     roles[TextRole]   = "text";
     roles[TimeRole]   = "time";
@@ -36,6 +39,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const {
     roles[FileUrlRole] = "fileUrl";
     roles[FileNameRole] = "fileName";
     roles[IsReadRole] = "isRead";
+    roles[IsRecalledRole] = "isRecalled";
     return roles;
 }
 
@@ -61,6 +65,17 @@ void MessageModel::markSentAsRead() {
             m_messages[i].isRead = true;
             QModelIndex idx = index(i);
             emit dataChanged(idx, idx, {IsReadRole});
+        }
+    }
+}
+
+void MessageModel::recallMessage(int messageId) {
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages[i].messageId == messageId) {
+            m_messages[i].isRecalled = true;
+            QModelIndex idx = index(i);
+            emit dataChanged(idx, idx, {IsRecalledRole, TextRole});
+            break;
         }
     }
 }

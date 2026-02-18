@@ -72,6 +72,7 @@ private slots:
     void onWebSocketFriendDeleted(int friendId);
     void onWebSocketUserStatusChanged(int userId, bool isOnline);
     void onWebSocketMessagesRead(int recipientId);
+    void onWebSocketMessageRecalled(int messageId);
     
     void onUploadImageSuccess(const QJsonObject& result);
     void onUploadImageFailed(const QString& error);
@@ -93,6 +94,7 @@ private:
     int m_currentFriendId;
     QString m_currentFriendName;
     bool m_hasUnreadMessages;
+    int m_selectedMessageId;
 
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -103,5 +105,7 @@ private:
     void handleTopBarMouseRelease(QMouseEvent *event);
     
     void markCurrentChatAsRead();
+    void showContextMenu(const QPoint &pos);
+    void onRecallMessage();
 };
 #endif // CHATMAINWINDOW_H
