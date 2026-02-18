@@ -562,6 +562,35 @@ void ApiService::uploadImage(const QString& filePath) {
     });
 }
 
+void ApiService::markMessagesAsRead(int senderId) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit markMessagesAsReadFailed("Not authenticated.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/messages/mark-read");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QJsonObject json;
+    json["senderId"] = senderId;
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+    
+    QNetworkReply* reply = m_netManager.post(request, data);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply, senderId]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            emit markMessagesAsReadSuccess(senderId);
+        } else {
+            emit markMessagesAsReadFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}
+
 void ApiService::uploadFile(const QString& filePath) {
     QString token = SessionManager::instance().token();
     if (token.isEmpty()) {

@@ -22,6 +22,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const {
     case MessageTypeRole: return m.messageType;
     case FileUrlRole: return m.fileUrl;
     case FileNameRole: return m.fileName;
+    case IsReadRole: return m.isRead;
     default:         return QVariant();
     }
 }
@@ -34,6 +35,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const {
     roles[MessageTypeRole] = "messageType";
     roles[FileUrlRole] = "fileUrl";
     roles[FileNameRole] = "fileName";
+    roles[IsReadRole] = "isRead";
     return roles;
 }
 
@@ -41,6 +43,26 @@ void MessageModel::addMessage(const MessageData &msg) {
     beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
     m_messages.append(msg);
     endInsertRows();
+}
+
+void MessageModel::markAllAsRead() {
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (!m_messages[i].isSelf && !m_messages[i].isRead) {
+            m_messages[i].isRead = true;
+            QModelIndex idx = index(i);
+            emit dataChanged(idx, idx, {IsReadRole});
+        }
+    }
+}
+
+void MessageModel::markSentAsRead() {
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages[i].isSelf && !m_messages[i].isRead) {
+            m_messages[i].isRead = true;
+            QModelIndex idx = index(i);
+            emit dataChanged(idx, idx, {IsReadRole});
+        }
+    }
 }
 
 void MessageModel::clear() {

@@ -76,6 +76,22 @@ void WebSocketClient::sendFileMessage(int recipientId, const QString& fileUrl, c
     qDebug() << "File message sent via WebSocket:" << json;
 }
 
+void WebSocketClient::markMessagesAsRead(int senderId)
+{
+    if (!isConnected()) {
+        qWarning() << "WebSocket not connected!";
+        return;
+    }
+
+    QJsonObject json;
+    json["type"] = "mark_read";
+    json["senderId"] = senderId;
+
+    QJsonDocument doc(json);
+    m_socket.sendTextMessage(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
+    qDebug() << "Mark read sent via WebSocket:" << json;
+}
+
 void WebSocketClient::onConnected()
 {
     qDebug() << "WebSocket connected!";
@@ -124,6 +140,11 @@ void WebSocketClient::onTextMessageReceived(const QString& message)
     }
     else if (type == "user_status") {
         handleUserStatus(json);
+    }
+    else if (type == "messages_read") {
+        int recipientId = json["recipientId"].toInt();
+        qDebug() << "Messages read by recipient:" << recipientId;
+        emit messagesRead(recipientId);
     }
     else if (type == "auth_error") {
         emit errorOccurred(json["message"].toString());

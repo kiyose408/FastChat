@@ -18,6 +18,7 @@ public:
     
     void sendMessage(int recipientId, const QString& text);
     void sendFileMessage(int recipientId, const QString& fileUrl, const QString& fileName, const QString& messageType);
+    void markMessagesAsRead(int senderId);
 
 signals:
     void connected();
@@ -33,6 +34,7 @@ signals:
     void friendDeleted(int friendId);
     
     void userStatusChanged(int userId, bool isOnline);
+    void messagesRead(int recipientId);
 
 private slots:
     void onConnected();

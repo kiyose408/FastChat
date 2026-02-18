@@ -19,9 +19,9 @@ signals:
 
 private:
     QSize calculateTextSize(const QString &text) const;
-    void paintTextMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &text, const QString &time) const;
-    void paintImageMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &fileUrl, const QString &time) const;
-    void paintFileMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &fileName, const QString &fileUrl, const QString &time) const;
+    void paintTextMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &text, const QString &time, bool isRead) const;
+    void paintImageMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &fileUrl, const QString &time, bool isRead) const;
+    void paintFileMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &fileName, const QString &fileUrl, const QString &time, bool isRead) const;
     
     mutable QNetworkAccessManager m_networkManager;
     mutable QCache<QString, QPixmap> m_imageCache;

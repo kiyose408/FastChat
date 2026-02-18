@@ -33,6 +33,7 @@ public:
     
     void sendMessage(int recipientId, const QString& content);
     void getConversation(int recipientId);
+    void markMessagesAsRead(int senderId);
     
     void uploadImage(const QString& filePath);
     void uploadFile(const QString& filePath);
@@ -69,6 +70,8 @@ signals:
     void sendMessageFailed(const QString& error);
     void getConversationSuccess(const QJsonArray& messages);
     void getConversationFailed(const QString& error);
+    void markMessagesAsReadSuccess(int senderId);
+    void markMessagesAsReadFailed(const QString& error);
     
     void uploadImageSuccess(const QJsonObject& result);
     void uploadImageFailed(const QString& error);

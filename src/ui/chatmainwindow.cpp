@@ -16,6 +16,7 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     , m_friendRequestBadge(nullptr)
     , m_friendRequestCount(0)
     , m_currentFriendId(-1)
+    , m_hasUnreadMessages(false)
 {
     ui->setupUi(this);
     setWindowFlags(Qt::FramelessWindowHint);
@@ -36,6 +37,9 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     ui->chatList_listview->setStyleSheet("QListView { background-color: #F8F8F8; }");
 
     connect(ui->friend_List_listview, &QListView::clicked, this, &ChatMainWindow::onFriendClicked);
+    
+    ui->chatList_listview->installEventFilter(this);
+    ui->text_textEdit->installEventFilter(this);
 
     QTimer::singleShot(100, this, [this]() {
         ui->friend_List_listview->scrollToBottom();
@@ -81,6 +85,7 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     connect(m_webSocketClient, &WebSocketClient::friendRequestAccepted, this, &ChatMainWindow::onWebSocketFriendRequestAccepted);
     connect(m_webSocketClient, &WebSocketClient::friendDeleted, this, &ChatMainWindow::onWebSocketFriendDeleted);
     connect(m_webSocketClient, &WebSocketClient::userStatusChanged, this, &ChatMainWindow::onWebSocketUserStatusChanged);
+    connect(m_webSocketClient, &WebSocketClient::messagesRead, this, &ChatMainWindow::onWebSocketMessagesRead);
     
     QTimer::singleShot(500, this, [this]() {
         m_apiService->getFriendRequests();
@@ -292,7 +297,13 @@ void ChatMainWindow::onSendMessageSuccess(const QJsonObject& message)
     QString content = data["content"].toString();
     QString time = QDateTime::fromString(data["created_at"].toString(), Qt::ISODate).toString("hh:mm");
     
-    m_messageModel->addMessage({true, content, time});
+    MessageData msgData;
+    msgData.isSelf = true;
+    msgData.text = content;
+    msgData.time = time;
+    msgData.isRead = false;
+    
+    m_messageModel->addMessage(msgData);
     ui->chatList_listview->scrollToBottom();
 }
 
@@ -317,6 +328,7 @@ void ChatMainWindow::onGetConversationSuccess(const QJsonArray& messages)
         QString messageType = msgObj["message_type"].toString("text");
         QString fileUrl = msgObj["file_url"].toString();
         QString fileName = msgObj["file_name"].toString();
+        bool isRead = msgObj["is_read"].toBool();
         
         bool isMine = (senderId == currentUserId);
         
@@ -327,6 +339,7 @@ void ChatMainWindow::onGetConversationSuccess(const QJsonArray& messages)
         msgData.messageType = messageType;
         msgData.fileUrl = fileUrl;
         msgData.fileName = fileName;
+        msgData.isRead = isRead;
         
         m_messageModel->addMessage(msgData);
     }
@@ -374,6 +387,7 @@ void ChatMainWindow::onWebSocketMessageReceived(const QJsonObject& message)
     QString messageType = message["message_type"].toString("text");
     QString fileUrl = message["file_url"].toString();
     QString fileName = message["file_name"].toString();
+    bool isRead = message["is_read"].toBool();
     
     if (senderId == m_currentFriendId) {
         MessageData msgData;
@@ -383,9 +397,11 @@ void ChatMainWindow::onWebSocketMessageReceived(const QJsonObject& message)
         msgData.messageType = messageType;
         msgData.fileUrl = fileUrl;
         msgData.fileName = fileName;
+        msgData.isRead = false;
         
         m_messageModel->addMessage(msgData);
         ui->chatList_listview->scrollToBottom();
+        m_hasUnreadMessages = true;
     } else {
         qDebug() << "收到其他用户消息，发送者ID:" << senderId;
     }
@@ -410,6 +426,7 @@ void ChatMainWindow::onWebSocketMessageSent(const QJsonObject& message)
     msgData.messageType = messageType;
     msgData.fileUrl = fileUrl;
     msgData.fileName = fileName;
+    msgData.isRead = false;
     
     m_messageModel->addMessage(msgData);
     ui->chatList_listview->scrollToBottom();
@@ -446,6 +463,13 @@ void ChatMainWindow::onWebSocketUserStatusChanged(int userId, bool isOnline)
 {
     qDebug() << "好友在线状态变化，用户ID:" << userId << "在线:" << isOnline;
     m_friendModel->updateOnlineStatus(userId, isOnline);
+}
+
+void ChatMainWindow::onWebSocketMessagesRead(int recipientId)
+{
+    Q_UNUSED(recipientId);
+    qDebug() << "消息已被阅读，接收者ID:" << recipientId;
+    m_messageModel->markSentAsRead();
 }
 
 void ChatMainWindow::onUploadImageSuccess(const QJsonObject& result)
@@ -506,4 +530,35 @@ void ChatMainWindow::mouseReleaseEvent(QMouseEvent *event) {
         m_isDragging = false;
     }
     QWidget::mouseReleaseEvent(event);
+}
+
+bool ChatMainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == ui->chatList_listview) {
+        if (event->type() == QEvent::MouseButtonPress || 
+            event->type() == QEvent::MouseButtonRelease) {
+            markCurrentChatAsRead();
+        }
+    }
+    
+    if (watched == ui->text_textEdit) {
+        if (event->type() == QEvent::KeyPress) {
+            markCurrentChatAsRead();
+        }
+    }
+    
+    return QMainWindow::eventFilter(watched, event);
+}
+
+void ChatMainWindow::markCurrentChatAsRead()
+{
+    if (m_currentFriendId > 0 && m_hasUnreadMessages) {
+        qDebug() << "标记消息已读，好友ID:" << m_currentFriendId;
+        
+        if (m_webSocketClient->isConnected()) {
+            m_webSocketClient->markMessagesAsRead(m_currentFriendId);
+        }
+        m_messageModel->markAllAsRead();
+        m_hasUnreadMessages = false;
+    }
 }

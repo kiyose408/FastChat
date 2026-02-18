@@ -11,6 +11,7 @@ struct MessageData {
     QString messageType;
     QString fileUrl;
     QString fileName;
+    bool isRead;
 };
 
 class MessageModel : public QAbstractListModel {
@@ -23,7 +24,8 @@ public:
         TimeRole,
         MessageTypeRole,
         FileUrlRole,
-        FileNameRole
+        FileNameRole,
+        IsReadRole
     };
 
     explicit MessageModel(QObject *parent = nullptr);
@@ -33,6 +35,8 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void addMessage(const MessageData &msg);
+    void markAllAsRead();
+    void markSentAsRead();
     void clear();
 
 private:

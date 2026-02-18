@@ -34,6 +34,9 @@ public:
     void updateFriendRequestBadge(int count);
     void refreshFriendList();
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private slots:
     void onFriendClicked(const QModelIndex &index);
     void on_addFriend_label_clicked();
@@ -68,6 +71,7 @@ private slots:
     void onWebSocketFriendRequestAccepted(int friendId, const QString& username);
     void onWebSocketFriendDeleted(int friendId);
     void onWebSocketUserStatusChanged(int userId, bool isOnline);
+    void onWebSocketMessagesRead(int recipientId);
     
     void onUploadImageSuccess(const QJsonObject& result);
     void onUploadImageFailed(const QString& error);
@@ -88,6 +92,7 @@ private:
     int m_friendRequestCount;
     int m_currentFriendId;
     QString m_currentFriendName;
+    bool m_hasUnreadMessages;
 
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -96,5 +101,7 @@ private:
     void handleTopBarMousePress(QMouseEvent *event);
     void handleTopBarMouseMove(QMouseEvent *event);
     void handleTopBarMouseRelease(QMouseEvent *event);
+    
+    void markCurrentChatAsRead();
 };
 #endif // CHATMAINWINDOW_H

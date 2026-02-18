@@ -22,6 +22,8 @@ static const QColor TIME_COLOR(136, 136, 136);
 static const QColor FILE_BG_COLOR(240, 240, 240);
 static const QColor FILE_ICON_COLOR(100, 100, 100);
 static const QColor LOADING_COLOR(200, 200, 200);
+static const QColor READ_COLOR(136, 136, 136);
+static const QColor UNREAD_COLOR(100, 149, 237);
 
 QSize MessageDelegate::calculateTextSize(const QString &text) const {
     QFont font("Microsoft YaHei", 10);
@@ -104,19 +106,20 @@ void MessageDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
     QString messageType = index.data(MessageModel::MessageTypeRole).toString();
     QString fileUrl = index.data(MessageModel::FileUrlRole).toString();
     QString fileName = index.data(MessageModel::FileNameRole).toString();
+    bool isRead = index.data(MessageModel::IsReadRole).toBool();
 
     if (messageType == "image") {
-        paintImageMessage(painter, option, isSelf, fileUrl, time);
+        paintImageMessage(painter, option, isSelf, fileUrl, time, isRead);
     } else if (messageType == "file") {
-        paintFileMessage(painter, option, isSelf, fileName, fileUrl, time);
+        paintFileMessage(painter, option, isSelf, fileName, fileUrl, time, isRead);
     } else {
-        paintTextMessage(painter, option, isSelf, text, time);
+        paintTextMessage(painter, option, isSelf, text, time, isRead);
     }
 
     painter->restore();
 }
 
-void MessageDelegate::paintTextMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &text, const QString &time) const {
+void MessageDelegate::paintTextMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &text, const QString &time, bool isRead) const {
     QFont font("Microsoft YaHei", 10);
     QFontMetrics fm(font);
     
@@ -179,13 +182,22 @@ void MessageDelegate::paintTextMessage(QPainter *painter, const QStyleOptionView
         textY += fm.height();
     }
 
-    painter->setFont(QFont("Microsoft YaHei", 8));
+    QFont timeFont("Microsoft YaHei", 8);
+    painter->setFont(timeFont);
     painter->setPen(TIME_COLOR);
-    int timeX = isSelf ? (bubbleRect.left()) : (bubbleRect.right() - 40);
-    painter->drawText(QRect(timeX, bubbleRect.bottom() + 2, 40, 14), Qt::AlignHCenter, time);
+    
+    if (isSelf) {
+        QString readText = isRead ? QString::fromUtf8("已读") : QString::fromUtf8("未读");
+        painter->setPen(isRead ? READ_COLOR : UNREAD_COLOR);
+        painter->drawText(QRect(bubbleRect.left(), bubbleRect.bottom() + 2, 30, 14), Qt::AlignLeft, readText);
+        painter->setPen(TIME_COLOR);
+        painter->drawText(QRect(bubbleRect.left() + 32, bubbleRect.bottom() + 2, 40, 14), Qt::AlignLeft, time);
+    } else {
+        painter->drawText(QRect(bubbleRect.right() - 40, bubbleRect.bottom() + 2, 40, 14), Qt::AlignRight, time);
+    }
 }
 
-void MessageDelegate::paintImageMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &fileUrl, const QString &time) const {
+void MessageDelegate::paintImageMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &fileUrl, const QString &time, bool isRead) const {
     int maxImageWidth = 200;
     int maxImageHeight = 150;
     
@@ -221,18 +233,27 @@ void MessageDelegate::paintImageMessage(QPainter *painter, const QStyleOptionVie
         
         painter->setPen(Qt::white);
         painter->setFont(QFont("Microsoft YaHei", 10));
-        painter->drawText(imageRect, Qt::AlignCenter, "加载中...");
+        painter->drawText(imageRect, Qt::AlignCenter, QString::fromUtf8("加载中..."));
         
         loadImage(fileUrl);
     }
 
-    painter->setFont(QFont("Microsoft YaHei", 8));
+    QFont timeFont("Microsoft YaHei", 8);
+    painter->setFont(timeFont);
     painter->setPen(TIME_COLOR);
-    int timeX = isSelf ? (bubbleRect.left()) : (bubbleRect.right() - 40);
-    painter->drawText(QRect(timeX, bubbleRect.bottom() + 2, 40, 14), Qt::AlignHCenter, time);
+    
+    if (isSelf) {
+        QString readText = isRead ? QString::fromUtf8("已读") : QString::fromUtf8("未读");
+        painter->setPen(isRead ? READ_COLOR : UNREAD_COLOR);
+        painter->drawText(QRect(bubbleRect.left(), bubbleRect.bottom() + 2, 30, 14), Qt::AlignLeft, readText);
+        painter->setPen(TIME_COLOR);
+        painter->drawText(QRect(bubbleRect.left() + 32, bubbleRect.bottom() + 2, 40, 14), Qt::AlignLeft, time);
+    } else {
+        painter->drawText(QRect(bubbleRect.right() - 40, bubbleRect.bottom() + 2, 40, 14), Qt::AlignRight, time);
+    }
 }
 
-void MessageDelegate::paintFileMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &fileName, const QString &fileUrl, const QString &time) const {
+void MessageDelegate::paintFileMessage(QPainter *painter, const QStyleOptionViewItem &option, bool isSelf, const QString &fileName, const QString &fileUrl, const QString &time, bool isRead) const {
     int bubbleWidth = 220;
     int bubbleHeight = 60;
 
@@ -264,10 +285,19 @@ void MessageDelegate::paintFileMessage(QPainter *painter, const QStyleOptionView
     m_lastFileUrl = fileUrl;
     m_lastFileName = fileName;
 
-    painter->setFont(QFont("Microsoft YaHei", 8));
+    QFont timeFont("Microsoft YaHei", 8);
+    painter->setFont(timeFont);
     painter->setPen(TIME_COLOR);
-    int timeX = isSelf ? (bubbleRect.left()) : (bubbleRect.right() - 40);
-    painter->drawText(QRect(timeX, bubbleRect.bottom() + 2, 40, 14), Qt::AlignHCenter, time);
+    
+    if (isSelf) {
+        QString readText = isRead ? QString::fromUtf8("已读") : QString::fromUtf8("未读");
+        painter->setPen(isRead ? READ_COLOR : UNREAD_COLOR);
+        painter->drawText(QRect(bubbleRect.left(), bubbleRect.bottom() + 2, 30, 14), Qt::AlignLeft, readText);
+        painter->setPen(TIME_COLOR);
+        painter->drawText(QRect(bubbleRect.left() + 32, bubbleRect.bottom() + 2, 40, 14), Qt::AlignLeft, time);
+    } else {
+        painter->drawText(QRect(bubbleRect.right() - 40, bubbleRect.bottom() + 2, 40, 14), Qt::AlignRight, time);
+    }
 }
 
 bool MessageDelegate::editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index) {
