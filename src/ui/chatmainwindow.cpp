@@ -11,6 +11,8 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QNetworkReply>
+#include <QCloseEvent>
+#include <QApplication>
 #include "ui/ImageCropDialog.h"
 
 ChatMainWindow::ChatMainWindow(QWidget *parent)
@@ -25,6 +27,8 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     , m_hasUnreadMessages(false)
     , m_selectedMessageId(-1)
     , m_searchResultsDialog(nullptr)
+    , m_trayIcon(nullptr)
+    , m_trayMenu(nullptr)
 {
     ui->setupUi(this);
     setWindowFlags(Qt::FramelessWindowHint);
@@ -101,6 +105,21 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     connect(m_webSocketClient, &WebSocketClient::userStatusChanged, this, &ChatMainWindow::onWebSocketUserStatusChanged);
     connect(m_webSocketClient, &WebSocketClient::messagesRead, this, &ChatMainWindow::onWebSocketMessagesRead);
     connect(m_webSocketClient, &WebSocketClient::messageRecalled, this, &ChatMainWindow::onWebSocketMessageRecalled);
+    
+    m_trayIcon = new QSystemTrayIcon(this);
+    m_trayIcon->setIcon(QIcon(":/resources/icons/app.svg"));
+    m_trayIcon->setToolTip("FastChat");
+    
+    m_trayMenu = new QMenu(this);
+    QAction* showAction = m_trayMenu->addAction(QString::fromUtf8("显示主窗口"));
+    QAction* quitAction = m_trayMenu->addAction(QString::fromUtf8("退出"));
+    
+    connect(showAction, &QAction::triggered, this, &ChatMainWindow::onTrayShowWindow);
+    connect(quitAction, &QAction::triggered, this, &ChatMainWindow::onTrayQuit);
+    connect(m_trayIcon, &QSystemTrayIcon::activated, this, &ChatMainWindow::onTrayIconActivated);
+    
+    m_trayIcon->setContextMenu(m_trayMenu);
+    m_trayIcon->show();
     
     QTimer::singleShot(500, this, [this]() {
         m_apiService->getFriendRequests();
@@ -412,6 +431,7 @@ void ChatMainWindow::onWebSocketMessageReceived(const QJsonObject& message)
     QString messageType = message["message_type"].toString("text");
     QString fileUrl = message["file_url"].toString();
     QString fileName = message["file_name"].toString();
+    QString senderName = message["sender_username"].toString();
     
     if (senderId == m_currentFriendId) {
         MessageData msgData;
@@ -430,6 +450,22 @@ void ChatMainWindow::onWebSocketMessageReceived(const QJsonObject& message)
         m_hasUnreadMessages = true;
     } else {
         qDebug() << "收到其他用户消息，发送者ID:" << senderId;
+        
+        if (m_trayIcon && !isActiveWindow()) {
+            QString notificationContent = content;
+            if (messageType == "image") {
+                notificationContent = QString::fromUtf8("[图片]");
+            } else if (messageType == "file") {
+                notificationContent = QString::fromUtf8("[文件] ") + fileName;
+            }
+            
+            m_trayIcon->showMessage(
+                senderName.isEmpty() ? QString::fromUtf8("新消息") : senderName,
+                notificationContent,
+                QSystemTrayIcon::Information,
+                3000
+            );
+        }
     }
 }
 
@@ -766,5 +802,51 @@ void ChatMainWindow::onSearchMessageSelected(int friendId, const QString& friend
             }
         }
     });
+}
+
+void ChatMainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
+{
+    switch (reason) {
+        case QSystemTrayIcon::Trigger:
+        case QSystemTrayIcon::DoubleClick:
+            onTrayShowWindow();
+            break;
+        default:
+            break;
+    }
+}
+
+void ChatMainWindow::onTrayShowWindow()
+{
+    show();
+    raise();
+    activateWindow();
+    
+    if (isMinimized()) {
+        showNormal();
+    }
+}
+
+void ChatMainWindow::onTrayQuit()
+{
+    if (m_trayIcon) {
+        m_trayIcon->hide();
+    }
+    QApplication::quit();
+}
+
+void ChatMainWindow::closeEvent(QCloseEvent *event)
+{
+    hide();
+    event->ignore();
+    
+    if (m_trayIcon) {
+        m_trayIcon->showMessage(
+            "FastChat",
+            QString::fromUtf8("程序已最小化到系统托盘，点击图标可恢复窗口"),
+            QSystemTrayIcon::Information,
+            2000
+        );
+    }
 }
 

@@ -16,6 +16,7 @@
 #include "ui/SearchResultsDialog.h"
 #include <QLabel>
 #include <QNetworkAccessManager>
+#include <QSystemTrayIcon>
 class FriendModel;
 class MessageModel;
 QT_BEGIN_NAMESPACE
@@ -107,6 +108,8 @@ private:
     int m_selectedMessageId;
     QNetworkAccessManager m_avatarNetworkManager;
     SearchResultsDialog* m_searchResultsDialog;
+    QSystemTrayIcon* m_trayIcon;
+    QMenu* m_trayMenu;
 
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -119,5 +122,10 @@ private:
     void markCurrentChatAsRead();
     void showContextMenu(const QPoint &pos);
     void onRecallMessage();
+    
+    void onTrayIconActivated(QSystemTrayIcon::ActivationReason reason);
+    void onTrayShowWindow();
+    void onTrayQuit();
+    void closeEvent(QCloseEvent *event) override;
 };
 #endif // CHATMAINWINDOW_H
