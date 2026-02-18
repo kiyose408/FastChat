@@ -14,6 +14,7 @@
 #include "ui/FriendManagementDialog.h"
 #include "ui/FriendInfoDialog.h"
 #include <QLabel>
+#include <QNetworkAccessManager>
 class FriendModel;
 class MessageModel;
 QT_BEGIN_NAMESPACE
@@ -43,6 +44,7 @@ private slots:
     void on_more_label_clicked();
     void on_pic_label_clicked();
     void on_file_label_clicked();
+    void on_userAvatar_label_clicked();
 
     void on_esc_label_clicked();
     void on_max_label_clicked();
@@ -78,6 +80,8 @@ private slots:
     void onUploadImageFailed(const QString& error);
     void onUploadFileSuccess(const QJsonObject& result);
     void onUploadFileFailed(const QString& error);
+    void onUploadAvatarSuccess(const QJsonObject& result);
+    void onUploadAvatarFailed(const QString& error);
 
 private:
     Ui::ChatMainWindow *ui;
@@ -95,6 +99,7 @@ private:
     QString m_currentFriendName;
     bool m_hasUnreadMessages;
     int m_selectedMessageId;
+    QNetworkAccessManager m_avatarNetworkManager;
 
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;

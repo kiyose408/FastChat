@@ -10,6 +10,7 @@ struct FriendData {
     bool isOnline;
     QString lastSeen;
     int unreadCount;
+    QString avatarUrl;
 };
 
 class FriendModel : public QAbstractListModel {
@@ -21,7 +22,8 @@ public:
         NicknameRole,
         IsOnlineRole,
         LastSeenRole,
-        UnreadCountRole
+        UnreadCountRole,
+        AvatarUrlRole
     };
 
     explicit FriendModel(QObject *parent = nullptr);

@@ -61,6 +61,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         resources/icons/search_32.svg
         src/ui/FriendManagementDialog.h src/ui/FriendManagementDialog.cpp src/ui/FriendManagementDialog.ui
         src/ui/FriendInfoDialog.h src/ui/FriendInfoDialog.cpp src/ui/FriendInfoDialog.ui
+        src/ui/ImageCropDialog.h src/ui/ImageCropDialog.cpp
 
 
 

@@ -7,6 +7,11 @@
 #include <QFont>
 #include <QFileDialog>
 #include <QMenu>
+#include <QDir>
+#include <QPainter>
+#include <QPainterPath>
+#include <QNetworkReply>
+#include "ui/ImageCropDialog.h"
 
 ChatMainWindow::ChatMainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -79,6 +84,8 @@ ChatMainWindow::ChatMainWindow(QWidget *parent)
     connect(m_apiService, &ApiService::uploadImageFailed, this, &ChatMainWindow::onUploadImageFailed);
     connect(m_apiService, &ApiService::uploadFileSuccess, this, &ChatMainWindow::onUploadFileSuccess);
     connect(m_apiService, &ApiService::uploadFileFailed, this, &ChatMainWindow::onUploadFileFailed);
+    connect(m_apiService, &ApiService::uploadAvatarSuccess, this, &ChatMainWindow::onUploadAvatarSuccess);
+    connect(m_apiService, &ApiService::uploadAvatarFailed, this, &ChatMainWindow::onUploadAvatarFailed);
     
     connect(m_webSocketClient, &WebSocketClient::connected, this, &ChatMainWindow::onWebSocketConnected);
     connect(m_webSocketClient, &WebSocketClient::disconnected, this, &ChatMainWindow::onWebSocketDisconnected);
@@ -254,12 +261,14 @@ void ChatMainWindow::onGetFriendsSuccess(const QJsonArray& friends)
         int friendId = friendObj["friend_id"].toInt();
         QString username = friendObj["username"].toString();
         bool isOnline = friendObj["is_online"].toBool();
+        QString avatarUrl = friendObj["avatar_url"].toString();
         
         FriendData friendData;
         friendData.id = friendId;
         friendData.nickname = username;
         friendData.isOnline = isOnline;
         friendData.unreadCount = 0;
+        friendData.avatarUrl = avatarUrl;
         
         m_friendModel->addFriend(friendData);
         qDebug() << "添加好友:" << friendId << username << "在线:" << isOnline;
@@ -565,6 +574,51 @@ void ChatMainWindow::onUploadFileFailed(const QString& error)
     qDebug() << "文件上传失败:" << error;
 }
 
+void ChatMainWindow::onUploadAvatarSuccess(const QJsonObject& result)
+{
+    qDebug() << "头像上传成功:" << result;
+    
+    QJsonObject userObj = result["user"].toObject();
+    QString avatarUrl = userObj["avatar_url"].toString();
+    
+    qDebug() << "新头像URL:" << avatarUrl;
+    
+    if (!avatarUrl.isEmpty()) {
+        QString fullUrl = "http://localhost:3000" + avatarUrl;
+        QNetworkReply* reply = m_avatarNetworkManager.get(QNetworkRequest(QUrl(fullUrl)));
+        
+        connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+            if (reply->error() == QNetworkReply::NoError) {
+                QByteArray data = reply->readAll();
+                QPixmap pixmap;
+                if (pixmap.loadFromData(data)) {
+                    QPixmap scaled = pixmap.scaled(40, 40, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+                    
+                    QPixmap rounded(40, 40);
+                    rounded.fill(Qt::transparent);
+                    
+                    QPainter painter(&rounded);
+                    painter.setRenderHint(QPainter::Antialiasing);
+                    QPainterPath path;
+                    path.addEllipse(0, 0, 40, 40);
+                    painter.setClipPath(path);
+                    painter.drawPixmap(0, 0, scaled);
+                    
+                    ui->userAvatar_label->setPixmap(rounded);
+                }
+            }
+            reply->deleteLater();
+        });
+    }
+    
+    m_apiService->getFriends();
+}
+
+void ChatMainWindow::onUploadAvatarFailed(const QString& error)
+{
+    qDebug() << "头像上传失败:" << error;
+}
+
 void ChatMainWindow::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_isDragging = true;
@@ -619,3 +673,34 @@ void ChatMainWindow::markCurrentChatAsRead()
         m_hasUnreadMessages = false;
     }
 }
+
+void ChatMainWindow::on_userAvatar_label_clicked()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, QString::fromUtf8("选择头像"), "", "图片文件 (*.png *.jpg *.jpeg *.gif *.bmp *.webp)");
+    if (filePath.isEmpty()) {
+        return;
+    }
+    
+    QPixmap originalPixmap(filePath);
+    if (originalPixmap.isNull()) {
+        qDebug() << "无法加载图片:" << filePath;
+        return;
+    }
+    
+    ImageCropDialog cropDialog(originalPixmap, this);
+    cropDialog.setWindowFlags(Qt::Dialog | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+    cropDialog.setModal(true);
+    
+    if (cropDialog.exec() == QDialog::Accepted) {
+        QPixmap croppedPixmap = cropDialog.getCroppedImage();
+        
+        QString tempPath = QDir::tempPath() + "/avatar_temp_" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".png";
+        if (croppedPixmap.save(tempPath, "PNG")) {
+            qDebug() << "裁切后的头像保存到:" << tempPath;
+            m_apiService->uploadAvatar(tempPath);
+        } else {
+            qDebug() << "保存裁切后的头像失败";
+        }
+    }
+}
+

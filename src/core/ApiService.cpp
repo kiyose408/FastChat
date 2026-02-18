@@ -642,3 +642,61 @@ void ApiService::uploadFile(const QString& filePath) {
         reply->deleteLater();
     });
 }
+
+void ApiService::uploadAvatar(const QString& filePath) {
+    QString token = SessionManager::instance().token();
+    if (token.isEmpty()) {
+        emit uploadAvatarFailed("Not authenticated.");
+        return;
+    }
+    
+    QUrl url(baseUrl() + "/api/upload/avatar");
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
+    
+    QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    
+    QFileInfo fileInfo(filePath);
+    QString fileName = fileInfo.fileName();
+    QString ext = fileInfo.suffix().toLower();
+    
+    QString mimeType = "image/jpeg";
+    if (ext == "png") mimeType = "image/png";
+    else if (ext == "gif") mimeType = "image/gif";
+    else if (ext == "webp") mimeType = "image/webp";
+    
+    QHttpPart imagePart;
+    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, mimeType);
+    imagePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant(QString("form-data; name=\"avatar\"; filename=\"%1\"").arg(fileName)));
+    
+    QFile* file = new QFile(filePath);
+    if (!file->open(QIODevice::ReadOnly)) {
+        emit uploadAvatarFailed("Cannot open file.");
+        delete multiPart;
+        delete file;
+        return;
+    }
+    
+    imagePart.setBodyDevice(file);
+    file->setParent(multiPart);
+    multiPart->append(imagePart);
+    
+    QNetworkReply* reply = m_netManager.post(request, multiPart);
+    multiPart->setParent(reply);
+    
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            qDebug() << "Upload avatar response:" << data;
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit uploadAvatarSuccess(doc.object());
+            } else {
+                emit uploadAvatarFailed("Invalid response format.");
+            }
+        } else {
+            emit uploadAvatarFailed(reply->errorString());
+        }
+        reply->deleteLater();
+    });
+}

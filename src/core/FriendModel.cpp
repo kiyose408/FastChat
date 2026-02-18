@@ -21,6 +21,7 @@ QVariant FriendModel::data(const QModelIndex &index, int role) const {
     case IsOnlineRole: return f.isOnline;
     case LastSeenRole: return f.lastSeen;
     case UnreadCountRole: return f.unreadCount;
+    case AvatarUrlRole: return f.avatarUrl;
     default: return QVariant();
     }
 }
@@ -32,6 +33,7 @@ QHash<int, QByteArray> FriendModel::roleNames() const {
     roles[IsOnlineRole] = "isOnline";
     roles[LastSeenRole] = "lastSeen";
     roles[UnreadCountRole] = "unreadCount";
+    roles[AvatarUrlRole] = "avatarUrl";
     return roles;
 }
 

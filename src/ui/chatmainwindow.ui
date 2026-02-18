@@ -1296,7 +1296,7 @@ border-left: none;
            <number>0</number>
           </property>
           <item>
-           <widget class="QLabel" name="userAvatar_label">
+           <widget class="ClickableLabel" name="userAvatar_label">
             <property name="text">
              <string extracomment="用户头像"/>
             </property>
