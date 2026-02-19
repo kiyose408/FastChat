@@ -6,7 +6,7 @@ FastChat 是一款基于 Qt 框架开发的跨平台即时通讯应用，采用 
 
 | 项目 | 说明 |
 |------|------|
-| 版本 | v0.11 |
+| 版本 | v0.12 |
 | 状态 | Beta |
 | 许可证 | MIT |
 | 平台 | Windows 10/11 (可扩展至 macOS/Linux) |
@@ -36,10 +36,14 @@ FastChat 是一款基于 Qt 框架开发的跨平台即时通讯应用，采用 
 | **实时通讯** | WebSocket 长连接 | ✅ |
 | | 实时消息推送 | ✅ |
 | | 心跳保活 | ✅ |
+| | 自动重连 | ✅ |
+| | 断线消息队列 | ✅ |
 | **用户界面** | 无边框窗口设计 | ✅ |
 | | 自定义消息气泡 | ✅ |
 | | 系统托盘支持 | ✅ |
 | | 头像上传与裁切 | ✅ |
+| **网络可靠性** | HTTP 请求重试机制 | ✅ |
+| | 指数退避策略 | ✅ |
 
 ## 技术栈
 
@@ -70,35 +74,64 @@ FastChat 是一款基于 Qt 框架开发的跨平台即时通讯应用，采用 
 fastchat/                          # 前端项目
 ├── src/
 │   ├── core/                      # 核心业务逻辑
+│   │   ├── AppConfig.h            # 应用配置常量
 │   │   ├── ApiService             # HTTP API 服务
 │   │   ├── WebSocketClient        # WebSocket 客户端
 │   │   ├── SessionManager         # 会话管理
+│   │   ├── ConfigManager          # 配置管理
 │   │   ├── FriendModel            # 好友数据模型
-│   │   └── MessageModel           # 消息数据模型
+│   │   ├── MessageModel           # 消息数据模型
+│   │   ├── MessageQueue           # 消息队列
+│   │   ├── RetryPolicy            # 重试策略
+│   │   └── ImageLoader            # 图片加载工具
 │   ├── ui/                        # 用户界面
 │   │   ├── ChatMainWindow         # 主聊天窗口
 │   │   ├── LoginDialog            # 登录对话框
 │   │   ├── RegisterDialog         # 注册对话框
 │   │   ├── FriendManagementDialog # 好友管理
+│   │   ├── FriendInfoDialog       # 好友信息
+│   │   ├── FriendDelegate         # 好友列表委托
+│   │   ├── MessageDelegate        # 消息列表委托
 │   │   ├── SearchResultsDialog    # 搜索结果
-│   │   └── ImageCropDialog        # 图片裁切
-│   └── utils/                     # 工具类
+│   │   ├── ImageCropDialog        # 图片裁切
+│   │   ├── AvatarHelper           # 头像绘制工具
+│   │   └── FramelessWindowHelper  # 无边框窗口辅助
+│   ├── utils/                     # 工具类
+│   │   └── logger                 # 日志工具
+│   └── main.cpp                   # 程序入口
 ├── resources/                     # 资源文件
 ├── docs/                          # 文档
+│   ├── MANUAL.md                  # 软件说明书
+│   ├── ARCHITECTURE.md            # 架构说明
+│   ├── CHANGELOG.md               # 开发日志
+│   └── DEVELOPMENT_PLAN.md        # 开发计划
 └── scripts/                       # 构建脚本
 
 fastchat-backend/                  # 后端项目
 ├── src/
-│   ├── routes/                    # API 路由
-│   │   ├── auth.js                # 认证接口
-│   │   ├── friends.js             # 好友接口
-│   │   ├── messages.js            # 消息接口
-│   │   └── upload.js              # 上传接口
-│   ├── models/                    # 数据模型
+│   ├── config/                    # 配置
+│   │   └── db.js                  # 数据库配置
 │   ├── middleware/                # 中间件
-│   └── config/                    # 配置
-├── uploads/                       # 上传文件
-└── init.sql                       # 数据库初始化
+│   │   └── auth.js                # JWT 认证
+│   ├── models/                    # 数据模型
+│   │   ├── User.js
+│   │   ├── Friend.js
+│   │   └── Message.js
+│   ├── routes/                    # API 路由
+│   │   ├── auth.js
+│   │   ├── friends.js
+│   │   ├── messages.js
+│   │   └── upload.js
+│   ├── websocket/                 # WebSocket 模块
+│   │   ├── index.js               # 服务器初始化
+│   │   └── handlers.js            # 消息处理器
+│   ├── utils/
+│   │   └── helpers.js
+│   └── server.js                  # 服务入口
+├── migrations/                    # 数据库迁移
+├── scripts/                       # 工具脚本
+├── tests/                         # 测试文件
+└── uploads/                       # 上传文件
 ```
 
 ## 快速开始
@@ -123,7 +156,7 @@ npm install
 psql -U postgres -c "CREATE DATABASE fastchat;"
 
 # 4. 初始化数据表
-psql -U postgres -d fastchat -f init.sql
+psql -U postgres -d fastchat -f migrations/001-init.sql
 
 # 5. 配置环境变量
 cp .env.example .env
@@ -198,27 +231,10 @@ JWT_SECRET=your_jwt_secret_key
 | POST | /api/upload/image | 上传图片 |
 | POST | /api/upload/file | 上传文件 |
 
-## 使用说明
-
-详细使用说明请参阅 [软件说明书](docs/MANUAL.md)。
-
-### 基本操作
-
-1. **注册账号**：首次使用需要注册账号
-2. **添加好友**：点击左下角 "+" 按钮搜索并添加好友
-3. **开始聊天**：点击好友列表中的好友开始聊天
-4. **发送文件**：点击聊天区域的图片/文件按钮发送
-5. **更换头像**：点击左上角头像区域上传新头像
-
-### 系统托盘
-
-- 关闭窗口时程序最小化到系统托盘
-- 点击托盘图标恢复窗口
-- 右键托盘图标显示菜单
-
-## 开发文档
+## 文档
 
 - [软件说明书](docs/MANUAL.md) - 详细功能说明和操作指南
+- [架构说明](docs/ARCHITECTURE.md) - 系统架构设计
 - [开发日志](docs/CHANGELOG.md) - 版本更新记录
 - [开发计划](docs/DEVELOPMENT_PLAN.md) - 未来开发规划
 
@@ -228,4 +244,4 @@ JWT_SECRET=your_jwt_secret_key
 
 ---
 
-*FastChat v0.11 - 2026年2月*
+*FastChat v0.12 - 2026年2月*
