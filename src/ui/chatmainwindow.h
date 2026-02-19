@@ -17,8 +17,6 @@
 #include <QLabel>
 #include <QNetworkAccessManager>
 #include <QSystemTrayIcon>
-class FriendModel;
-class MessageModel;
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class ChatMainWindow;

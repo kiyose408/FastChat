@@ -1,5 +1,6 @@
 #include "chatmainwindow.h"
 #include "./ui_chatmainwindow.h"
+#include "core/AppConfig.h"
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QJsonObject>
@@ -623,7 +624,7 @@ void ChatMainWindow::onUploadAvatarSuccess(const QJsonObject& result)
     qDebug() << "新头像URL:" << avatarUrl;
     
     if (!avatarUrl.isEmpty()) {
-        QString fullUrl = "http://localhost:3000" + avatarUrl;
+        QString fullUrl = AppConfig::serverBaseUrl() + avatarUrl;
         QNetworkReply* reply = m_avatarNetworkManager.get(QNetworkRequest(QUrl(fullUrl)));
         
         connect(reply, &QNetworkReply::finished, this, [this, reply]() {

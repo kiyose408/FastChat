@@ -1,5 +1,6 @@
 #include "FriendDelegate.h"
 #include "core/FriendModel.h"
+#include "core/AppConfig.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QFontMetrics>
@@ -29,7 +30,7 @@ static QCache<QString, QPixmap>& avatarCache() {
 void FriendDelegate::loadAvatar(const QString& url) const {
     if (url.isEmpty() || avatarCache().contains(url)) return;
     
-    QString fullUrl = "http://localhost:3000" + url;
+    QString fullUrl = AppConfig::avatarBaseUrl() + url;
     QNetworkReply* reply = networkManager()->get(QNetworkRequest(QUrl(fullUrl)));
     
     connect(reply, &QNetworkReply::finished, this, [this, reply, url]() {

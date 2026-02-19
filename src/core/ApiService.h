@@ -11,6 +11,7 @@
 #include <QMap>
 #include <QUuid>
 #include "RetryPolicy.h"
+#include "AppConfig.h"
 
 struct PendingRequest {
     QString id;
@@ -108,7 +109,7 @@ private:
     int m_timeoutMs = 30000;
     QMap<QString, PendingRequest> m_pendingRequests;
 
-    QString baseUrl() const { return "http://localhost:3000"; }
+    QString baseUrl() const { return AppConfig::serverBaseUrl(); }
     
     QString generateRequestId();
     void executeRequest(const QString& requestId);

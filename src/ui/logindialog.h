@@ -1,6 +1,5 @@
 #ifndef LOGINDIALOG_H
 #define LOGINDIALOG_H
-#include "core/IAuthService.h"
 #include "core/ApiService.h"
 #include <QDialog>
 

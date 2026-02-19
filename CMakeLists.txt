@@ -42,8 +42,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         resources/icons/call.svg resources/icons/emoji.svg resources/icons/file.svg resources/icons/friend.svg resources/icons/friend_select.svg resources/icons/more.svg resources/icons/msg.svg resources/icons/msg_select.svg resources/icons/quit.svg resources/icons/setting.svg resources/icons/video_call.svg resources/icons/voice.svg
         resources.qrc
         src/ui/logindialog.h src/ui/logindialog.cpp src/ui/logindialog.ui
-        src/core/IAuthService.h
-        src/core/MockAuthService.h src/core/MockAuthService.cpp
         src/core/FriendModel.h src/core/FriendModel.cpp
         src/ui/FriendDelegate.h src/ui/FriendDelegate.cpp
         src/core/MessageModel.h src/core/MessageModel.cpp
@@ -53,6 +51,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         src/core/WebSocketClient.h src/core/WebSocketClient.cpp
         src/core/RetryPolicy.h src/core/RetryPolicy.cpp
         src/core/MessageQueue.h src/core/MessageQueue.cpp
+        src/core/AppConfig.h
+        src/core/ImageLoader.h
         resources/icons/app.svg resources/icons/call.svg resources/icons/emoji.svg resources/icons/emoji_select.svg resources/icons/file.svg resources/icons/friend.svg resources/icons/friend_select.svg resources/icons/Logindialog.svg resources/icons/more.svg resources/icons/msg.svg resources/icons/msg_select.svg resources/icons/quit.svg resources/icons/send.svg resources/icons/setting.svg resources/icons/user.png resources/icons/video_call.svg resources/icons/voice.svg
         src/ui/RegisterDialog.h src/ui/RegisterDialog.cpp src/ui/RegisterDialog.ui
 
@@ -65,6 +65,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         src/ui/FriendInfoDialog.h src/ui/FriendInfoDialog.cpp src/ui/FriendInfoDialog.ui
         src/ui/ImageCropDialog.h src/ui/ImageCropDialog.cpp
         src/ui/SearchResultsDialog.h src/ui/SearchResultsDialog.cpp
+        src/ui/AvatarHelper.h
+        src/ui/FramelessWindowHelper.h
 
 
 

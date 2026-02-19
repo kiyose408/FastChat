@@ -9,7 +9,7 @@ public:
 
     //获取/设置服务器地址  Get/Set the address of server
     QString serverAddress() const;
-    void setServerAddress(const QSize& addr);
+    void setServerAddress(const QString& addr);
 
     //窗口大小记忆
     QSize windowSize() const;

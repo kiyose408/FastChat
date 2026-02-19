@@ -12,7 +12,7 @@ QString ConfigManager::serverAddress() const{
     return m_settings.value("Network/SeverAddress", "127.0.0.1:8080").toString();
 }
 
-void ConfigManager::setServerAddress(const QSize &addr)
+void ConfigManager::setServerAddress(const QString& addr)
 {
     m_settings.setValue("Network/ServerAddress", addr);
 }

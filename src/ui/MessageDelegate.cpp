@@ -1,5 +1,6 @@
 #include "MessageDelegate.h"
 #include "core/MessageModel.h"
+#include "core/AppConfig.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QFontMetrics>
@@ -76,7 +77,7 @@ void MessageDelegate::loadImage(const QString& url) const {
     }
     
     m_loadingImages[url] = true;
-    QString fullUrl = "http://localhost:3000" + url;
+    QString fullUrl = AppConfig::serverBaseUrl() + url;
     
     QUrl qurl(fullUrl);
     QNetworkRequest request(qurl);

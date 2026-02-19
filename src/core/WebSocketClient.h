@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QTimer>
 #include "MessageQueue.h"
+#include "AppConfig.h"
 
 enum class ConnectionState {
     Disconnected,

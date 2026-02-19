@@ -25,7 +25,7 @@ void WebSocketClient::connectToServer(const QString& token)
     m_token = token;
     m_state = ConnectionState::Connecting;
     
-    QUrl url("ws://localhost:3000/websocket?token=" + token);
+    QUrl url(AppConfig::wsBaseUrl() + "/websocket?token=" + token);
     qDebug() << "Connecting to WebSocket:" << url.toString();
     m_socket.open(url);
 }
