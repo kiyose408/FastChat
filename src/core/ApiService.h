@@ -7,6 +7,19 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QHttpMultiPart>
+#include <QTimer>
+#include <QMap>
+#include <QUuid>
+#include "RetryPolicy.h"
+
+struct PendingRequest {
+    QString id;
+    QNetworkRequest request;
+    QByteArray data;
+    QString method;
+    int retryCount = 0;
+    QString apiName;
+};
 
 class ApiService : public QObject
 {
@@ -40,6 +53,9 @@ public:
     void uploadAvatar(const QString& filePath);
     
     void searchMessages(const QString& query);
+    
+    void setRetryConfig(const RetryConfig& config);
+    void setRequestTimeout(int ms);
 
 signals:
 
@@ -86,12 +102,19 @@ signals:
     void searchMessagesSuccess(const QJsonArray& results, const QString& query);
     void searchMessagesFailed(const QString& error);
 
-
-
 private:
     QNetworkAccessManager m_netManager;
+    RetryPolicy* m_retryPolicy;
+    int m_timeoutMs = 30000;
+    QMap<QString, PendingRequest> m_pendingRequests;
 
     QString baseUrl() const { return "http://localhost:3000"; }
+    
+    QString generateRequestId();
+    void executeRequest(const QString& requestId);
+    void handleReplyFinished(const QString& requestId, QNetworkReply* reply);
+    void retryRequest(const QString& requestId);
+    bool shouldRetryRequest(QNetworkReply* reply, int retryCount);
 };
 
 #endif // APISERVICE_H

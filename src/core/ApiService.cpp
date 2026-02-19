@@ -1,52 +1,130 @@
-// ApiService.cpp
-// 实现了 ApiService 类，该类负责与后端 API 进行网络通信。
-// 它封装了登录、获取用户信息和获取好友列表等 API 调用逻辑，
-// 并通过 Qt 的 QNetworkAccessManager 处理 HTTP 请求和响应。
-// 该类依赖于 SessionManager 来管理认证 token。
-
-#include "ApiService.h" // 包含头文件声明
+#include "ApiService.h"
 #include "SessionManager.h"
-#include <QNetworkRequest> // 用于构建 HTTP 请求
-#include <QJsonDocument>   // 用于解析和构建 JSON 数据
-#include <QJsonObject>     // 用于处理 JSON 对象
-#include <QUrlQuery>       // 用于处理 URL 查询参数（虽然此文件未使用，但包含在内）
-#include <QDebug>          // 用于调试输出
+#include <QNetworkRequest>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QUrlQuery>
+#include <QDebug>
 #include <QFile>
 #include <QFileInfo>
 #include <QHttpMultiPart>
 
-
 ApiService::ApiService(QObject *parent)
-    : QObject(parent) // 调用父类 QObject 的构造函数
+    : QObject(parent)
+    , m_retryPolicy(new RetryPolicy(RetryConfig(), this))
 {
-    // 移除全局的 finished 信号连接，让每个请求自己处理自己的响应
-    // 这样可以避免响应被处理两次的问题
 }
 
-// 发起注册请求
-// 构建注册 API 的 HTTP POST 请求，发送用户名、邮箱和密码给服务器
-// 请求成功后，服务器会返回包含 token 和用户信息的 JSON 响应
+QString ApiService::generateRequestId()
+{
+    return QUuid::createUuid().toString(QUuid::WithoutBraces);
+}
+
+void ApiService::setRetryConfig(const RetryConfig& config)
+{
+    m_retryPolicy->setConfig(config);
+}
+
+void ApiService::setRequestTimeout(int ms)
+{
+    m_timeoutMs = ms;
+}
+
+bool ApiService::shouldRetryRequest(QNetworkReply* reply, int retryCount)
+{
+    if (!m_retryPolicy->canRetry(retryCount)) {
+        return false;
+    }
+    
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QNetworkReply::NetworkError error = reply->error();
+    
+    if (statusCode == 401) {
+        return false;
+    }
+    
+    return m_retryPolicy->shouldRetry(error, statusCode);
+}
+
+void ApiService::retryRequest(const QString& requestId)
+{
+    if (!m_pendingRequests.contains(requestId)) {
+        return;
+    }
+    
+    PendingRequest& req = m_pendingRequests[requestId];
+    int delay = m_retryPolicy->calculateDelay(req.retryCount);
+    req.retryCount++;
+    
+    qDebug() << "Retrying request" << req.apiName 
+             << "attempt" << req.retryCount 
+             << "after" << delay << "ms";
+    
+    QTimer::singleShot(delay, this, [this, requestId]() {
+        executeRequest(requestId);
+    });
+}
+
+void ApiService::executeRequest(const QString& requestId)
+{
+    if (!m_pendingRequests.contains(requestId)) {
+        return;
+    }
+    
+    PendingRequest& req = m_pendingRequests[requestId];
+    
+    QNetworkReply* reply = nullptr;
+    
+    if (req.method == "GET") {
+        reply = m_netManager.get(req.request);
+    } else if (req.method == "POST") {
+        reply = m_netManager.post(req.request, req.data);
+    } else if (req.method == "PUT") {
+        reply = m_netManager.put(req.request, req.data);
+    } else if (req.method == "DELETE") {
+        reply = m_netManager.deleteResource(req.request);
+    }
+    
+    if (reply) {
+        connect(reply, &QNetworkReply::finished, this, [this, requestId, reply]() {
+            handleReplyFinished(requestId, reply);
+        });
+    }
+}
+
+void ApiService::handleReplyFinished(const QString& requestId, QNetworkReply* reply)
+{
+    if (!m_pendingRequests.contains(requestId)) {
+        reply->deleteLater();
+        return;
+    }
+    
+    PendingRequest& req = m_pendingRequests[requestId];
+    
+    if (reply->error() != QNetworkReply::NoError && shouldRetryRequest(reply, req.retryCount)) {
+        retryRequest(requestId);
+        reply->deleteLater();
+        return;
+    }
+    
+    m_pendingRequests.remove(requestId);
+}
+
 void ApiService::registerUser(const QString &username, const QString &email, const QString &password)
 {
-    // 构建注册 API 的完整 URL
     QUrl url(baseUrl() + "/api/auth/register");
-    // 创建网络请求对象
     QNetworkRequest request(url);
-    // 设置请求头，指定发送的数据格式为 JSON
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    // 构建要发送的 JSON 数据体
     QJsonObject json;
-    json["username"] = username; // 添加用户名字段
-    json["email"] = email;       // 添加邮箱字段
-    json["password"] = password; // 添加密码字段
+    json["username"] = username;
+    json["email"] = email;
+    json["password"] = password;
 
-    // 将 JSON 对象转换为 JSON 文档，再转换为字节数组
     QJsonDocument doc(json);
-    QByteArray data = doc.toJson(); // 这个 data 就是即将发送的请求体
+    QByteArray data = doc.toJson();
 
-    qDebug() << "Sending POST request to" << url.toString() << "with data:" << data; // 调试
-    // 使用网络管理器发起 POST 请求，将 data 作为请求体发送
+    qDebug() << "Sending POST request to" << url.toString() << "with data:" << data;
     QNetworkReply* reply = m_netManager.post(request, data);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -72,25 +150,20 @@ void ApiService::registerUser(const QString &username, const QString &email, con
     });
 }
 
-// 发起登录请求
-// 构建登录 API 的 HTTP POST 请求，发送用户名和密码给服务器
-// 请求成功后，服务器会返回包含 token 和用户信息的 JSON 响应
 void ApiService::login(const QString &username, const QString &password)
 {
     QUrl url(baseUrl() + "/api/auth/login");
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    // 构建要发送的 JSON 数据体
     QJsonObject json;
     json["username"] = username;
     json["password"] = password;
 
-    // 将 JSON 对象转换为 JSON 文档，再转换为字节数组
     QJsonDocument doc(json);
-    QByteArray data = doc.toJson(); // 这个 data 就是即将发送的请求体
+    QByteArray data = doc.toJson();
 
-    qDebug() << "Sending POST request to" << url.toString() << "with data:" << data; // 调试
+    qDebug() << "Sending POST request to" << url.toString() << "with data:" << data;
     QNetworkReply* reply = m_netManager.post(request, data);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -123,7 +196,6 @@ void ApiService::login(const QString &username, const QString &password)
     });
 }
 
-//搜索用户
 void ApiService::searchUsers(const QString &query)
 {
     if (query.trimmed().length() < 2) {
@@ -131,9 +203,7 @@ void ApiService::searchUsers(const QString &query)
         return;
     }
 
-    // 从 SessionManager 获取当前用户的认证 token
     QString token = SessionManager::instance().token();
-    // 如果没有 token（即未登录），则不发送请求
     if (token.isEmpty()) {
         emit searchUsersFailed("Not authenticated.");
         return;
@@ -145,7 +215,6 @@ void ApiService::searchUsers(const QString &query)
     url.setQuery(queryItems);
 
     QNetworkRequest request(url);
-    // 设置请求头中的 Authorization 字段，使用 Bearer Token 认证方式
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     QNetworkReply* reply = m_netManager.get(request);
 
@@ -168,7 +237,6 @@ void ApiService::searchUsers(const QString &query)
     });
 }
 
-// 新增：发送好友请求
 void ApiService::sendFriendRequest(int friendId, const QString& note) {
     QString token = SessionManager::instance().token();
     if (token.isEmpty()) {
@@ -204,7 +272,7 @@ void ApiService::sendFriendRequest(int friendId, const QString& note) {
         reply->deleteLater();
     });
 }
-// 新增：获取好友列表
+
 void ApiService::getFriends() {
     QUrl url(baseUrl() + "/api/friends");
     QNetworkRequest request(url);
@@ -235,7 +303,6 @@ void ApiService::getFriends() {
     });
 }
 
-// 新增：获取好友请求
 void ApiService::getFriendRequests() {
     QUrl url(baseUrl() + "/api/friends/requests");
     QNetworkRequest request(url);
@@ -260,7 +327,6 @@ void ApiService::getFriendRequests() {
     });
 }
 
-// 新增：接受好友请求
 void ApiService::acceptFriendRequest(int requesterId) {
     QUrl url(baseUrl() + "/api/friends/accept");
     QNetworkRequest request(url);
@@ -291,7 +357,6 @@ void ApiService::acceptFriendRequest(int requesterId) {
     });
 }
 
-// 新增：拒绝好友请求
 void ApiService::rejectFriendRequest(int requesterId) {
     QUrl url(baseUrl() + "/api/friends/reject");
     QNetworkRequest request(url);
@@ -374,24 +439,15 @@ void ApiService::updateFriendNote(int friendId, const QString& note) {
     });
 }
 
-// 获取当前用户的详细信息
-// 在请求头中添加认证 token，向服务器请求当前登录用户的信息
 void ApiService::fetchUserInfo()
 {
-    // 从 SessionManager 获取当前用户的认证 token
     QString token = SessionManager::instance().token();
-    // 如果没有 token（即未登录），则不发送请求
     if (token.isEmpty()) return;
 
-    // 构建获取用户信息的 API URL
     QUrl url(baseUrl() + "/api/users/me");
-    // 创建网络请求对象
     QNetworkRequest request(url);
-    // 设置请求头中的 Authorization 字段，使用 Bearer Token 认证方式
-    // 注意：这里使用了 toUtf8()，因为 setRawHeader 接受的是 QByteArray
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
 
-    // 使用网络管理器发起 GET 请求来获取用户信息
     QNetworkReply* reply = m_netManager.get(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -410,23 +466,15 @@ void ApiService::fetchUserInfo()
     });
 }
 
-// 获取当前用户的好友列表
-// 在请求头中添加认证 token，向服务器请求当前登录用户的好友列表
 void ApiService::fetchFriends()
 {
-    // 从 SessionManager 获取当前用户的认证 token
     QString token = SessionManager::instance().token();
-    // 如果没有 token（即未登录），则不发送请求
     if (token.isEmpty()) return;
 
-    // 构建获取好友列表的 API URL
     QUrl url(baseUrl() + "/api/friends");
-    // 创建网络请求对象
     QNetworkRequest request(url);
-    // 设置请求头中的 Authorization 字段，使用 Bearer Token 认证方式
     request.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
 
-    // 使用网络管理器发起 GET 请求来获取好友列表
     QNetworkReply* reply = m_netManager.get(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
