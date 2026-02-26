@@ -183,6 +183,8 @@ void ChatMainWindow::onFriendClicked(const QModelIndex &index)
 
     ui->sessionUserId_label->setText(m_currentFriendName);
     
+    updateButtonStates();
+    
     m_apiService->getConversation(m_currentFriendId);
 }
 
@@ -296,11 +298,29 @@ void ChatMainWindow::onGetFriendsSuccess(const QJsonArray& friends)
         m_friendModel->addFriend(friendData);
         qDebug() << "添加好友:" << friendId << username << "在线:" << isOnline;
     }
+    
+    updateButtonStates();
 }
 
 void ChatMainWindow::onGetFriendsFailed(const QString& error)
 {
     qDebug() << "获取好友列表失败:" << error;
+}
+
+void ChatMainWindow::updateButtonStates()
+{
+    bool hasFriendSelected = (m_currentFriendId > 0);
+    bool hasFriends = (m_friendModel->rowCount() > 0);
+    
+    // 只有当有好友且选择了好友时，才启用相关按钮
+    bool enableButtons = hasFriendSelected && hasFriends;
+    
+    ui->more_label->setEnabled(enableButtons);
+    ui->pic_label->setEnabled(enableButtons);
+    ui->file_label->setEnabled(enableButtons);
+    ui->send_btn->setEnabled(enableButtons);
+    
+    qDebug() << "更新按钮状态 - 有好友:" << hasFriends << "选择了好友:" << hasFriendSelected << "按钮启用:" << enableButtons;
 }
 
 void ChatMainWindow::on_send_btn_clicked()

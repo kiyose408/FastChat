@@ -65,6 +65,7 @@ private slots:
     
     void onDeleteFriendSuccess();
     
+    void updateButtonStates();
     void onWebSocketConnected();
     void onWebSocketDisconnected();
     void onWebSocketError(const QString& error);
